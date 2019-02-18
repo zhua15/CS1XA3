@@ -4,3 +4,7 @@ need to type in the number corresponding to the feature in order to run that fea
 1. TODO Log
 	The TODO Log feature recursively searches through all files within the repo and outputs all cases of the 
 	string "#TODO" into a file named todo.log in REPO/Project01/logs.
+2. Compile Error Log
+	The Compile Error Log feature recursively searches through all files within the repo and outputs all python
+	and haskell files where there is a syntax error. It then puts the files with syntax errors into a file named
+	compileError.log in REPO/Project01/logs.

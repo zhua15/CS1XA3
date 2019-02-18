@@ -1,1 +1,2 @@
 	grep -rh "#TODO" > Project01/logs/todo.log
+	string "#TODO" into a file named todo.log in REPO/Project01/logs.
