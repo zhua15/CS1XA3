@@ -21,14 +21,14 @@ if [ $input = "2" ];then
 	find . -name '*.py' -type f -print0 | while IFS= read -d $'\0' file
 	do
 		output="$(python $file)"
-		if echo "SyntaxError" | grep -q "$output";then
+		if echo "SyntaxError: invalid syntax" | grep -q "$output";then
 			echo $file >> Project01/logs/compileError.log
 		fi
 	done
 	find . -name '*.hs' -type f -print0 | while IFS= read -d $'\0' file
         do
                 output="$(runhaskell $file)"
-                if echo "Not in scope" | grep -q "$output";then
+                if echo "Not in scope:" | grep -q "$output";then
                         echo $file >> Project01/logs/compileError.log
                 fi
         done
