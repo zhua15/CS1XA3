@@ -13,3 +13,5 @@ need to type in the number corresponding to the feature in order to run that fea
 	files ending with .tmp
 4. Find Big Files
 	The Find Big Files feature finds files with sizes greater than 20MB within the repo
+5. Random Feature
+	The Random Feature feature randomly picks out one of the other four features to perform
