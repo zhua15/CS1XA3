@@ -11,3 +11,5 @@ need to type in the number corresponding to the feature in order to run that fea
 3. Delete Temporary Files
 	The Delete Temporary Files feature recursively searches through all files within the repo and deletes all
 	files ending with .tmp
+4. Find Big Files
+	The Find Big Files feature finds files with sizes greater than 20MB within the repo
