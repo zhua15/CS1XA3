@@ -1,7 +1,11 @@
 #/bin/bash
 cd ..
-printf "Please select a feature:\n1:TODO Log\n2:Compile Error Log\n3:Delete Temporary Files\n4:Find Big File\n5:\nSelection:"
+printf "Please select a feature:\n1:TODO Log\n2:Compile Error Log\n3:Delete Temporary Files\n4:Find Big File\n5:Random Feature\nSelection:"
 read input
+if [ $input = "5" ];then
+	input=$((1 + RANDOM%4))
+	printf "The feature that has been selected is:$input\n"
+fi
 if [ $input = "1" ];then
 	if [ -f Project01/logs/todo.log ];then
 		rm Project01/logs/todo.log
@@ -45,7 +49,4 @@ if [ $input = "4" ];then
 	do
 		echo $file
 	done
-fi
-if [ $input = "5" ];then
-	printf "that feature doesn't exist yet\n"
 fi
