@@ -8,3 +8,6 @@ need to type in the number corresponding to the feature in order to run that fea
 	The Compile Error Log feature recursively searches through all files within the repo and outputs all python
 	and haskell files where there is a syntax error. It then puts the files with syntax errors into a file named
 	compileError.log in REPO/Project01/logs.
+3. Delete Temporary Files
+	The Delete Temporary Files feature recursively searches through all files within the repo and deletes all
+	files ending with .tmp
