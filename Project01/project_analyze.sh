@@ -1,6 +1,6 @@
 #/bin/bash
 cd ..
-printf "Please select a feature:\n1:TODO Log\n2:Compile Error Log\n3:\n4:\n5:\nSelection:"
+printf "Please select a feature:\n1:TODO Log\n2:Compile Error Log\n3:Delete Temporary Files\n4:\n5:\nSelection:"
 read input
 if [ $input = "1" ];then
 	if [ -f Project01/logs/todo.log ];then
@@ -34,7 +34,10 @@ if [ $input = "2" ];then
         done
 fi
 if [ $input = "3" ];then
-	printf "that feature doesn't exist yet\n"
+	find . -name '*.tmp' -type f -print0 | while IFS= read -d $'\0' file
+	do
+		rm $file
+	done
 fi
 if [ $input = "4" ];then
 	printf "that feature doesn't exist yet\n"
