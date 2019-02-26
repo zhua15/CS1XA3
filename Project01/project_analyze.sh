@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 cd ..
 printf "Please select a feature:\n1:TODO Log\n2:Compile Error Log\n3:Delete Temporary Files\n4:Find Big File\n5:Random Feature\nSelection:"
 read input
@@ -38,9 +38,12 @@ if [ $input = "2" ];then
         done
 fi
 if [ $input = "3" ];then
+	cd Project01
 	find . -name '*.tmp' -type f -print0 | while IFS= read -d $'\0' file
 	do
-		rm $file
+		git ls-files . --full-name --others --exclude-standard | if grep -q "$file";then
+			rm $file
+		fi
 	done
 fi
 if [ $input = "4" ];then
