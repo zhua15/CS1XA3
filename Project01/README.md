@@ -9,7 +9,7 @@
 	compileError.log in REPO/Project01/logs.  
 **3. Delete Temporary Files**  
 	* The Delete Temporary Files feature recursively searches through all files within the repo and deletes all
-	files ending with .tmp. Will only remove unstaged files
+	files ending with .tmp. Will only remove unstaged files  
 **4. Find Big Files**  
 	* The Find Big Files feature finds files with sizes greater than 20MB within the repo.  
 **5. Random Feature**  
