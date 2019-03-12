@@ -1,0 +1,25 @@
+<div class="col-md-6">
+              <div class="cc-porfolio-image img-raised aos-init aos-animate" data-aos="fade-up" data-aos-anchor-placement="top-bottom"><a href="#web-development" onclick="window.location = 'https://github.com/bucklj4/CS1XA3/tree/master/Assign1'">
+                  <figure class="cc-effect"><img src="https://2.bp.blogspot.com/-C8uqt2a5ee8/V3Y0R_MeB5I/AAAAAAAAKNY/KrzwVxUu6UsrOlU4w776R891fAkc-6QEwCLcB/s1600/Bash-Final.jpg" alt="Image">
+                    <figcaption>
+                      <div class="h4">Bash Project</div>
+                      <p>Project Analyze: A bash shell for doing housekeeping work related to Git.</p>
+                    </figcaption>
+                  </figure></a></div>
+            </div>
+<div class="col-md-6">
+                <div class="cc-porfolio-image img-raised aos-init aos-animate" data-aos="fade-up" data-aos-anchor-placement="top-bottom"><a href="#web-development" onclick="window.location = './welcome.html'">
+                  <figure class="cc-effect"><img src="images/circle.png" alt="Image">
+                    <figcaption>
+                      <div class="h4">Elm Project</div>
+                      <p>Circle: A simple game where the top and bottom of the circle cannot hit the line.</p>
+                    </figcaption>
+                  </figure></a></div>
+            </div>
+<div class="cc-porfolio-image img-raised aos-init aos-animate" data-aos="fade-up" data-aos-anchor-placement="top-bottom"><a h="" ref="#web-development" onclick="window.location = 'https://github.com/bucklj4/CS1XA3/tree/master/Assign3'">
+                  <figure class="cc-effect"><img src="http://www.clker.com/cliparts/b/e/9/1/11949944721807984560black_sum.svg.hi.png" alt="Image">
+                    <figcaption>
+                      <div class="h4">Haskell Project</div>
+                      <p>A custom math library to help you with your calculus work.</p>
+                    </figcaption>
+                  </figure></a></div>
