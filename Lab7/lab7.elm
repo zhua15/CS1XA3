@@ -22,13 +22,11 @@ type alias Model =
   { name : String
   , password : String
   , passwordAgain : String
-  , myUser : String
-  , myPass : String
   , response : String
   }
 
 init : () -> ( Model, Cmd Msg )
-init _ = ({name="",password="",passwordAgain="",myUser="",myPass="",response=""}, testlab "" "")
+init _ = ({name="",password="",passwordAgain="",response=""}, Cmd.none)
 
 
 
@@ -39,7 +37,7 @@ type Msg
   = Name String
   | Password String
   | PasswordAgain String
-  | ButtonPushed String String
+  | ButtonPushed String String String
   | GotText (Result Http.Error String)
 
 
@@ -55,8 +53,8 @@ update msg model =
     PasswordAgain password ->
       ({ model | passwordAgain = password }, Cmd.none)
     
-    ButtonPushed user password->
-      ({ model | myUser = user, myPass = password}, testlab model.myUser model.myPass)
+    ButtonPushed user password again ->
+      ({ model | name = user, password = password, passwordAgain = again}, testlab model.name model.password model.passwordAgain)
 
     GotText result ->
             case result of
@@ -93,7 +91,7 @@ view model =
     , viewInput "password" "Password" model.password Password
     , viewInput "password" "Re-enter Password" model.passwordAgain PasswordAgain
     , viewValidation model
-    , viewButton model.name model.password "Click Twice to Confirm"
+    , viewButton model.name model.password model.passwordAgain "Log In"
     , viewText model.response
     ]
 
@@ -101,9 +99,9 @@ viewText : String -> Html Msg
 viewText response = 
   div [] [text response]
 
-viewButton : String -> String -> String -> Html Msg
-viewButton name pass msg = 
-  button [onClick (ButtonPushed name pass)] [text msg]
+viewButton : String -> String -> String -> String-> Html Msg
+viewButton name pass passa msg = 
+  button [onClick (ButtonPushed name pass passa)] [text msg]
 
 viewInput : String -> String -> String -> (String -> msg) -> Html msg
 viewInput t p v toMsg =
@@ -117,11 +115,11 @@ viewValidation model =
   else
     div [ style "color" "red" ] [ text "Passwords do not match!" ]
     
-testlab : String -> String -> Cmd Msg
-testlab myUser myPass =
+testlab : String -> String -> String -> Cmd Msg
+testlab myUser myPass myAgain =
     Http.post
         { url = "https://mac1xa3.ca/e/zhua15/lab7/"
-        , body = Http.stringBody "application/x-www-form-urlencoded" ("user="++myUser++"&password="++myPass)
+        , body = Http.stringBody "application/x-www-form-urlencoded" ("user="++myUser++"&password="++myPass++"&passwordagain="++myAgain)
         , expect = Http.expectString GotText
         }
 
