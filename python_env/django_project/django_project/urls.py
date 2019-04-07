@@ -18,4 +18,5 @@ from django.urls import path,include
 
 urlpatterns = [
     path('e/zhua15/penguins', include('penguinapp.urls')),
+    path('e/zhua15/lecture10', include ('lecture10.urls')),
 ]
