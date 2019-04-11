@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'database.apps.DatabaseConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -117,4 +118,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = '/e/zhua15/static/' 
+    # url to automatically access static files from
+STATICFILES_DIRS = [
+    "/home/zhua15/CS1XA3/public_html/",
+    # paths to collect static files from
+]
+STATIC_ROOT = "/home/zhua15/CS1XA3/django_project/static/"
+    # directory to store static files after colleted 

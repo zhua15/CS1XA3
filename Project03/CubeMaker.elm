@@ -6,12 +6,26 @@ import Url
 import Random exposing (..)
 import List exposing (..)
 import Http
+import Json.Encode as E
+import Json.Decode as D
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput)
+
+purple = RGBA 186 85 211 1
+alice = RGBA 240 248 255 1
+sky = RGBA 179 228 239 1
+black = RGBA 0 0 0 1
+blue = RGBA 70 130 180 1
+orange =RGBA 255 140 0 1
+green = RGBA 0 128 0 1
+red = RGBA 128 0 0 1
 
 g = 0.1
 a = 0.06
 friction = 0.03
-jumpStrength = 2 -- be reasonable, jump heights of over 75 will break collision detection
-initialPlatforms = [((-20,-4),(-38,-36),black),((-4,30),(-39,-38),blue),((-10,10),(-16,-14),purple),((20,30),(6,8),orange),((-10,0),(20,22),green)]
+jumpStrength = 2
+initialPlatforms = [((-20,-4),(-38,-36),red),((-4,30),(-39,-38),blue),((-10,10),(-16,-14),purple),((20,30),(6,8),orange),((-10,0),(20,22),green)]
 numplayers = 2 -- will increase player limit beyond 2 soon
 playerColours = ((purple,blue),(red,green))
 cubesize = 3
@@ -24,40 +38,110 @@ type Msg = Tick Float GetKeyState
          | NewTap
          | MakeRequest Browser.UrlRequest
          | UrlChange Url.Url
-         | GotText (Result Http.Error String)
+         | SendPlatforms (Result Http.Error PlatformTuples)
+         | Username String
+         | Password String
+         | PasswordConfirm String
+         | SignupTap
+         | LoginTap
 
 type alias Model = 
     {
-        player1 : (Bool,Color),
-        player2 : (Bool,Color),
-        player3 : (Bool,Color),
-        player4 : (Bool,Color),
+        page : Page,
+        player1 : (Bool,Colour),
+        player2 : (Bool,Colour),
+        player3 : (Bool,Colour),
+        player4 : (Bool,Colour),
         velx : FourTuples,
         vely : FourTuples,
         posx : FourTuples,
         posy : FourTuples,
-        response : String,
-        platform : PlatformTuples
+        platform : PlatformTuples,
+        username : String,
+        password : String,
+        confirmpassword : String
     }
 
-type alias PlatformTuples = List((Float,Float),(Float,Float),Color)
+type Page = Login | Signup | Game
+
+type Colour = RGBA Int Int Int Float
+
+type alias PlatformTuples = List ((Float,Float),(Float,Float),Colour)
+
 type alias FourTuples = ((Float,Float),(Float,Float))
+
+encodeColour : Colour -> E.Value
+encodeColour (RGBA r gr b al) =
+    E.object
+        [
+            ("r",E.int r)
+        ,   ("g",E.int gr)
+        ,   ("b",E.int b)        
+        ,   ("a",E.float al)        
+        ]
+
+encodeDoubleTuple : (Float,Float) -> E.Value
+encodeDoubleTuple (fst,snd) =
+    E.object
+        [
+            ("f", E.float fst)
+        ,   ("s", E.float snd)
+        ]
+
+encodeTripleTuple : ((Float,Float),(Float,Float),Colour) -> E.Value
+encodeTripleTuple (xval,yval,colour) = 
+    E.object
+        [
+            ("xvals", encodeDoubleTuple xval),
+            ("yvals", encodeDoubleTuple yval),
+            ("colours", encodeColour colour)
+        ]
+
+encodeList : List ((Float,Float),(Float,Float),Colour) -> E.Value
+encodeList platforms = 
+    E.object
+        [
+            ("platforms", E.list encodeTripleTuple platforms)
+        ]
+
+decodeColour : D.Decoder Colour
+decodeColour =
+    D.map4 RGBA (D.field "r" D.int) (D.field "g" D.int) (D.field "b" D.int) (D.field "a" D.float)        
+
+decodeDoubleTuple : D.Decoder (Float,Float)
+decodeDoubleTuple=
+    D.map2 Tuple.pair (D.field "f" D.float) (D.field "s" D.float)
+
+decodeTripleTuple : D.Decoder ((Float,Float),(Float,Float),Colour)
+decodeTripleTuple = 
+    D.map3 (\x b c -> (x,b,c)) (D.field "xvals" decodeDoubleTuple) (D.field "yvals" decodeDoubleTuple) (D.field "colours" decodeColour) 
+
+decodeList : D.Decoder PlatformTuples
+decodeList = 
+    D.list decodeTripleTuple
+
+toSVG : Colour -> Color
+toSVG myColour = case myColour of
+                    RGBA rr gg bb aa -> rgba (toFloat rr) (toFloat gg) (toFloat bb) aa
 
 init : () -> Url.Url -> Key -> ( Model, Cmd Msg )
 init flags url key =    let
                             ((c1,c2),(c3,c4)) = playerColours
                         in
                         ({
-                        player1 = if numplayers >= 1 then (True,c1) else (False,blank),
-                        player2 = if numplayers >= 2 then (True,c2) else (False,blank),
-                        player3 = if numplayers >=3 then (True,c3) else (False,blank),
-                        player4 = if numplayers >=4 then (True,c4) else (False,blank),
+                        page = Login,
+                        player1 = if numplayers >= 1 then (True,c1) else (False,(RGBA 0 0 0 0)),
+                        player2 = if numplayers >= 2 then (True,c2) else (False,(RGBA 0 0 0 0)),
+                        player3 = if numplayers >=3 then (True,c3) else (False,(RGBA 0 0 0 0)),
+                        player4 = if numplayers >=4 then (True,c4) else (False,(RGBA 0 0 0 0)),
                         velx  = ((0,0),(0,0)),
                         vely = ((0,0),(0,0)),
                         posx = startposx,
                         posy = startposy,
-                        response = "",
-                        platform = initialPlatforms
+                        platform = initialPlatforms,
+                        username = "",
+                        password = "",
+                        confirmpassword = ""
                         }, Cmd.none) 
 
 
@@ -88,62 +172,60 @@ update msg model =
                 posy4new = posyUpdate model.posx model.posy model.velx model.vely isAlive4 4 model.platform
             in ({model | posx = ((posx1new,posx2new),(posx3new,posx4new)), velx = ((velx1new,velx2new),(velx3new,velx4new)), posy = ((posy1new,posy2new),(posy3new,posy4new)), vely = ((vely1new,vely2new),(vely3new,vely4new))}, Cmd.none)
 
-        SaveTap -> ({ model | posy = ((0,0),(0,0)), posx = ((0,0),(0,0)) }, Cmd.none)
+        SaveTap -> (model, sendJsonPost model.platform)
         LoadTap -> (model, Cmd.none)
         NewTap -> ({ model | platform = [] }, Cmd.none)
+
+        Username input -> ({ model | username = input }, Cmd.none)
+        Password input -> ({ model | password = input }, Cmd.none)
+        PasswordConfirm input -> ({ model | confirmpassword = input }, Cmd.none)
+
+        SignupTap -> ({model | page = Signup}, Cmd.none)
+        LoginTap ->  ({model | page = Login}, Cmd.none)
 
         MakeRequest req -> (model, Cmd.none)
         UrlChange url -> (model, Cmd.none)
 
-        GotText result ->
+        SendPlatforms result ->
             case result of
                 Ok val ->
-                    ({model | response = val}, Cmd.none)
+                    ({model | platform = val}, Cmd.none)
                     
                 Err error ->
-                    (handleError model error , Cmd.none)
+                    ( model , Cmd.none)
 
-handleError model error =
-    case error of
-        Http.BadUrl url ->
-            { model | response = "bad url: " ++ url }
-            
-        Http.Timeout ->
-            { model | response = "timeout" }
-
-        Http.NetworkError ->
-            { model | response = "network error" }
-
-        Http.BadStatus i ->
-            { model | response = "bad status " ++ String.fromInt i }
-
-        Http.BadBody body ->
-            { model | response = "bad body " ++ body }
-
-serverSave : String -> String -> String -> Cmd Msg
-serverSave myUser myPass myAgain =
+sendJsonPost : PlatformTuples -> Cmd Msg
+sendJsonPost myPlatforms =
     Http.post
-        { url = "https://mac1xa3.ca/e/zhua15/lab7/"
-        , body = Http.stringBody "application/x-www-form-urlencoded" ("user="++myUser++"&password="++myPass++"&passwordagain="++myAgain)
-        , expect = Http.expectString GotText
-        }
-
-serverLoad : String -> String -> String -> Cmd Msg
-serverLoad myUser myPass myAgain =
-    Http.post
-        { url = "https://mac1xa3.ca/e/zhua15/lab7/"
-        , body = Http.stringBody "application/x-www-form-urlencoded" ("user="++myUser++"&password="++myPass++"&passwordagain="++myAgain)
-        , expect = Http.expectString GotText
+        { url = "https://mac1xa3.ca/e/zhua15/Project03/saveModel/"
+        , body = Http.jsonBody <| encodeList myPlatforms
+        , expect = Http.expectJson SendPlatforms decodeList
         }
 
 view : Model -> { title : String, body : Collage Msg }
 view model = 
     let
         title = "CubeStomp"
-        body = collage 100 100 gameall
-
-        gameall = playergroup ++ playerModelGroup ++ platforms ++ bg ++ buttons
-        bg = [square 80 |> outlined (solid 1) black]
+        body = collage 100 100 whichScreen
+        whichScreen = case model.page of
+                        Login -> loginScreen
+                        Signup -> signupScreen
+                        Game -> gameScreen
+                    
+        loginScreen = notgamebackground ++ usernameBox ++ passwordBox ++ loginButton ++ toSignup
+        signupScreen = notgamebackground ++ [group (usernameBox ++ passwordBox ++ confirmpasswordBox ++ signupButton) |> move (0,10)] ++ toLogin
+        usernameBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Username", value model.username, onInput Username ] []]) |> move (-15,15)]
+        passwordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Password", Html.Attributes.type_ "password", value model.password, onInput Password ] []]) |> move (-15,0)]
+        confirmpasswordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Confirm Password", Html.Attributes.type_ "password", value model.confirmpassword, onInput PasswordConfirm ] []]) |> move (-15,-15)]
+        loginButton = [rectangle 20 10 |> filled white |> move (0,-30)] ++ [GraphicSVG.text "Login" |> GraphicSVG.size 5 |> filled (toSVG black) |> move (-6,-31.5)]
+        signupButton =  [rectangle 20 10 |> filled white |> move (0,-45)] ++ [GraphicSVG.text "Signup" |> GraphicSVG.size 5 |> filled (toSVG black) |> move (-7,-47)]
+        toSignup = [GraphicSVG.text "Not a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (35,-45) |> notifyTap SignupTap]
+        toLogin = [GraphicSVG.text "Already a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (30,-45) |> notifyTap LoginTap]
+        notgamebackground = [square 100|> filled (toSVG sky)]
+        
+        gameScreen = background ++ playergroup ++ playerModelGroup ++ platforms ++ border ++ buttons
+        background = [square 80 |> filled (toSVG alice)]
+        border = [square 80 |> outlined (solid 1) GraphicSVG.black]
 
         playergroup = player1 ++ player2 ++ player3 ++ player4
         player1 = ifPlayer model (-45,45) 1
@@ -160,9 +242,9 @@ view model =
         platforms = (platformGenerate model.platform)
 
         buttons = [group[save,load,new,saveText,loadText,newText]]   
-        saveText = text "Save" |> size 3 |> filled black |> move (-48, 7) |> notifyTap SaveTap
-        loadText = text "Load" |> size 3 |> filled black |> move (-48, -1) |> notifyTap LoadTap
-        newText = text "New" |> size 3 |> filled black |> move (-48, -9) |> notifyTap NewTap
+        saveText = GraphicSVG.text "Save" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, 7) |> notifyTap SaveTap
+        loadText = GraphicSVG.text "Load" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, -1) |> notifyTap LoadTap
+        newText = GraphicSVG.text "New" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, -9) |> notifyTap NewTap
         save =  square 7 |> filled grey |> move (-45,8) |> notifyTap SaveTap
         load = square 7 |> filled grey |> move (-45,0) |> notifyTap LoadTap
         new = square 7 |> filled grey |> move (-45,-8) |> notifyTap NewTap
@@ -195,8 +277,8 @@ ifPlayer model (x,y) playernum =
                                             model.player3
                                         else
                                             model.player4
-        icon = group [square 8 |> filled playercolour, iconame] |> move (x,y)
-        iconame = text (String.fromInt playernum) |> size 3 |> filled white |> move (-0.5,-0.7)
+        icon = group [square 8 |> filled (toSVG playercolour), iconame] |> move (x,y)
+        iconame = GraphicSVG.text (String.fromInt playernum) |>  GraphicSVG.size 3 |> filled white |> move (-0.5,-0.7)
     in 
     if playerbool then
         [icon]
@@ -234,7 +316,7 @@ playerPiece model playernum =
                     posy4
     in 
     if playerbool then
-        [square cubesize |> filled playercolour |> move (posx,posy)]
+        [square cubesize |> filled (toSVG playercolour) |> move (posx,posy)]
     else []
 
 ---easier to add new walls and collidable objects
@@ -309,10 +391,6 @@ posxUpdate ((posx1,posx2),(posx3,posx4)) ((posy1,posy2),(posy3,posy4)) ((velx1,v
     in 
     if isAlive == False then
         -300
-    else if posx+velx < -(39.5 - (cubesize/2)) then
-        -(39.5 - (cubesize/2))
-    else if posx+velx > (39.5 - (cubesize/2)) then
-        (39.5 - (cubesize/2))
     else
         let
             (isTrueL,numL) = helperPosxL posx posy velx myPlatforms
@@ -323,7 +401,12 @@ posxUpdate ((posx1,posx2),(posx3,posx4)) ((posy1,posy2),(posy3,posy4)) ((velx1,v
         else if isTrueR then
             numR
         else
-            posx + velx
+            if posx+velx < -(39.5 - (cubesize/2)) then
+                -(39.5 - (cubesize/2))
+            else if posx+velx > (39.5 - (cubesize/2)) then
+                (39.5 - (cubesize/2))
+            else
+                posx + velx
 
 posyUpdate : FourTuples -> FourTuples -> FourTuples -> FourTuples ->Bool -> Int -> PlatformTuples -> Float
 posyUpdate ((posx1,posx2),(posx3,posx4)) ((posy1,posy2),(posy3,posy4)) ((velx1,velx2),(velx3,velx4)) ((vely1,vely2),(vely3,vely4)) isAlive num myPlatforms =    
@@ -335,10 +418,6 @@ posyUpdate ((posx1,posx2),(posx3,posx4)) ((posy1,posy2),(posy3,posy4)) ((velx1,v
     in
     if isAlive == False then
         -300
-    else if posy+vely < -(39.5 - (cubesize/2)) then
-        -(39.5 - (cubesize/2))
-    else if posy+vely > (39.5 - (cubesize/2)) then
-        (39.5 - (cubesize/2))
     else
         let
             (isTrueT,numT) = helperPosyT posx posy vely myPlatforms
@@ -352,19 +431,24 @@ posyUpdate ((posx1,posx2),(posx3,posx4)) ((posy1,posy2),(posy3,posy4)) ((velx1,v
         else if isTrueC then
             numC 
         else
-            posy + vely
+            if posy+vely < -(39.5 - (cubesize/2)) then
+                -(39.5 - (cubesize/2))
+            else if posy+vely > (39.5 - (cubesize/2)) then
+                (39.5 - (cubesize/2))
+            else
+                posy + vely
 
 helperVelx : Float -> Float -> Float -> PlatformTuples -> Bool   
 helperVelx posx posy velx x = 
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             False
         else
             helperVelx posx posy velx x2 || posy > ymin - cubesize/2 && posy < ymax + cubesize/2 && (posx == xmin - (cubesize/2) || posx == xmax + (cubesize/2))
@@ -374,12 +458,12 @@ helperVelyT posx posy vely x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             False
         else
             (helperVelyT posx posy vely x2) || (posy == ymax + cubesize/2 && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) && vely < 0)
@@ -389,12 +473,12 @@ helperVelyB posx posy vely x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             False
         else
             (helperVelyB posx posy vely x2) || (posy == ymin - cubesize/2 && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) && vely > 0)
@@ -404,12 +488,12 @@ helperPosxL posx posy velx x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             (False,0)
         else if  posy > ymin - cubesize/2 && posy < ymax + cubesize/2 && posx <= xmin - (cubesize/2) && posx + velx > xmin - (cubesize/2) then
             (True, xmin - (cubesize/2))
@@ -421,12 +505,12 @@ helperPosxR posx posy velx x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             (False,0)
         else if posy > ymin - cubesize/2 && posy < ymax + cubesize/2 && posx >= xmax + (cubesize/2) && posx + velx < xmax + (cubesize/2) then
             (True, xmax + (cubesize/2))
@@ -438,12 +522,12 @@ helperPosyT posx posy vely x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             (False,0)
         else if posy >= ymax + cubesize/2 && posy + vely < ymax + cubesize/2  && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) && vely < 0 then
             (True, ymax + cubesize/2)
@@ -455,12 +539,12 @@ helperPosyB posx posy vely x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             (False,0)
         else if posy <= ymin - cubesize/2 && posy + vely > ymin - cubesize/2  && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) && vely > 0 then
             (True, ymin - cubesize/2)
@@ -472,12 +556,12 @@ clipperCorner posx posy velx vely x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             (False,0)
         else if posy > ymin - cubesize/2 && posy < ymax + cubesize/2 && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) then
             if posy >= ymax then
@@ -492,12 +576,12 @@ helperCornerV posx posy velx vely x =
     let
         header = case head(x) of
                             Just v -> v
-                            Nothing -> ((0,0),(0,0),blank)
+                            Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             False
         else if True then
             True
@@ -509,12 +593,12 @@ isPlatform posx posy x =
     let
         header = case head(x) of
                     Just v -> v
-                    Nothing -> ((0,0),(0,0),blank)
+                    Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),blank) then
+    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
             False
         else if posy == ymax + cubesize/2 && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) then
             True
@@ -526,7 +610,7 @@ platformGenerate platformList =
     let
         header =  case head(platformList) of
                     Just v -> v
-                    Nothing -> ((0,0),(0,0),blank)
+                    Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
 
         ((xmin,xmax),(ymin,ymax),colour) = header
         
@@ -535,6 +619,6 @@ platformGenerate platformList =
                 Nothing -> []
     in 
     if x2 /= [] then
-        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled colour |> move (((xmin + xmax)/2),((ymax + ymin)/2))] ++ platformGenerate x2
+        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2))] ++ platformGenerate x2
     else
-        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled colour |> move (((xmin + xmax)/2),((ymax + ymin)/2))]
+        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2))]
