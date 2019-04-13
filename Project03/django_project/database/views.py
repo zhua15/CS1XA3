@@ -5,17 +5,22 @@ from django.contrib.auth import authenticate, login
 from .justPlatforms import Platform
 import json
 
-def saveModel(request):
-   myJson = json.loads("hello i am json")
-   print ("myJson:",myJson)
-   platforms = myJson.get("platforms","")
-   if platforms != "":
-      newPlatforms = Platforms(json=myJson)
-      newPlatforms.save()
-      return JsonResponse(platforms)
-   return JsonReponse("")
+def login(request):
+   myJson = json.loads(request.body.decode("utf-8"))
 
-def loadModel (request):
-   return JsonResponse("")
+def signUp(request):
+   myJson = json.loads(request.body.decode("utf-8"))
+
+#def saveModel(request):
+#   myJson = json.loads(request.body.decode("utf-8""))
+#   platforms = myJson.get("platforms","")
+#   if platforms != "":
+#      newPlatforms = Platforms(json=myJson)
+#      newPlatforms.save()
+#      return JsonResponse(platforms)
+#   return JsonReponse("")
+#
+#def loadModel (request):
+#   return JsonResponse("")
 
 # Create your views here.

@@ -44,6 +44,9 @@ type Msg = Tick Float GetKeyState
          | PasswordConfirm String
          | SignupTap
          | LoginTap
+         | LoginButton
+         | SignupButton
+         | GotAuth (Result Http.Error String)
 
 type alias Model = 
     {
@@ -102,6 +105,14 @@ encodeList platforms =
     E.object
         [
             ("platforms", E.list encodeTripleTuple platforms)
+        ]
+
+encodeCredentials : (String,String) -> E.Value
+encodeCredentials (user,pass) = 
+    E.object
+        [
+            ("username", E.string user),
+            ("password", E.string pass)
         ]
 
 decodeColour : D.Decoder Colour
@@ -180,11 +191,20 @@ update msg model =
         Password input -> ({ model | password = input }, Cmd.none)
         PasswordConfirm input -> ({ model | confirmpassword = input }, Cmd.none)
 
-        SignupTap -> ({model | page = Signup}, Cmd.none)
-        LoginTap ->  ({model | page = Login}, Cmd.none)
+        LoginButton -> (model, Cmd.none)
+        SignupButton -> (model, Cmd.none)
+
+        SignupTap -> ({model | page = Signup, username = "", password = "", confirmpassword = ""}, Cmd.none)
+        LoginTap ->  ({model | page = Login, username = "", password = "", confirmpassword = ""}, Cmd.none)
 
         MakeRequest req -> (model, Cmd.none)
         UrlChange url -> (model, Cmd.none)
+
+        GotAuth result ->
+            case result of
+                Ok "Login Success" -> ({model | page = Game} , Cmd.none)
+                Ok _ -> (model, Cmd.none)
+                Err error -> (model, Cmd.none)
 
         SendPlatforms result ->
             case result of
@@ -193,6 +213,15 @@ update msg model =
                     
                 Err error ->
                     ( model , Cmd.none)
+
+loginPost : (String,String) -> Cmd Msg
+loginPost (user,pass)= 
+    Http.post
+        {
+            url = "https://mac1xa3.ca/e/zhua15/Project03/login",
+            body = Http.jsonBody <| (encodeCredentials (user,pass)),
+            expect = Http.expectString GotAuth 
+        }
 
 sendJsonPost : PlatformTuples -> Cmd Msg
 sendJsonPost myPlatforms =
@@ -214,11 +243,11 @@ view model =
                     
         loginScreen = notgamebackground ++ usernameBox ++ passwordBox ++ loginButton ++ toSignup
         signupScreen = notgamebackground ++ [group (usernameBox ++ passwordBox ++ confirmpasswordBox ++ signupButton) |> move (0,10)] ++ toLogin
-        usernameBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Username", value model.username, onInput Username ] []]) |> move (-15,15)]
-        passwordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Password", Html.Attributes.type_ "password", value model.password, onInput Password ] []]) |> move (-15,0)]
-        confirmpasswordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Confirm Password", Html.Attributes.type_ "password", value model.confirmpassword, onInput PasswordConfirm ] []]) |> move (-15,-15)]
-        loginButton = [rectangle 20 10 |> filled white |> move (0,-30)] ++ [GraphicSVG.text "Login" |> GraphicSVG.size 5 |> filled (toSVG black) |> move (-6,-31.5)]
-        signupButton =  [rectangle 20 10 |> filled white |> move (0,-45)] ++ [GraphicSVG.text "Signup" |> GraphicSVG.size 5 |> filled (toSVG black) |> move (-7,-47)]
+        usernameBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "2px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Username", value model.username, onInput Username ] []]) |> move (-15,15)]
+        passwordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "2px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Password", Html.Attributes.type_ "password", value model.password, onInput Password ] []]) |> move (-15,0)]
+        confirmpasswordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "2px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Confirm Password", Html.Attributes.type_ "password", value model.confirmpassword, onInput PasswordConfirm ] []]) |> move (-15,-15)]
+        loginButton = [rectangle 20 10 |> filled white |> move (0,-30) |> notifyTap LoginButton] ++ [GraphicSVG.text "Login" |> GraphicSVG.size 5 |> filled (toSVG black) |> move (-6,-31.5) |> notifyTap LoginButton]
+        signupButton =  [rectangle 20 10 |> filled white |> move (0,-45) |> notifyTap SignupButton] ++ [GraphicSVG.text "Sign Up" |> GraphicSVG.size 5 |> filled (toSVG black) |> move (-8,-47) |> notifyTap SignupButton]
         toSignup = [GraphicSVG.text "Not a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (35,-45) |> notifyTap SignupTap]
         toLogin = [GraphicSVG.text "Already a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (30,-45) |> notifyTap LoginTap]
         notgamebackground = [square 100|> filled (toSVG sky)]
