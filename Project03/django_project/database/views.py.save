@@ -2,17 +2,17 @@ from django.shortcuts import render
 from django.http import HttpResponse,JsonResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
-from .models import HelperPlatforms, Platforms
+from .justPlatforms import Platform
 import json
 
 def login(request):
-   myJson = json.loads(request.body.decode('utf-8'))
-   print(str(myJson))
-   username = myJson.get('username','')
-   password = myJson.get('password','')
-   user = authenticate (request, username = username, password = password)
+   print("hello")
+   print(json.loads(request.body.decode('utf-8'))
+   myJson = json.loads(request.body)
+   username = myJson.get("username","")
+   password = myJson.get("password","")
+   user = authenticate(request,username=username,password=password)
    if user is not None:
-      login(request,user)
       return HttpResponse("Login Success")
    else:
       return HttpResponse("Login Fail")

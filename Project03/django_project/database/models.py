@@ -14,3 +14,4 @@ class Platforms(models.Model):
    objects = HelperPlatforms()
 
 # Create your models here.
+

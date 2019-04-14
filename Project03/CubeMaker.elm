@@ -12,14 +12,23 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
 
-purple = RGBA 186 85 211 1
 alice = RGBA 240 248 255 1
-sky = RGBA 179 228 239 1
 black = RGBA 0 0 0 1
 blue = RGBA 70 130 180 1
-orange =RGBA 255 140 0 1
+brown = RGBA 139 69 19 1
 green = RGBA 0 128 0 1
-red = RGBA 128 0 0 1
+grey = RGBA 128 128 128 1
+lime = RGBA 0 256 0 1
+maroon = RGBA 128 0 0 1
+olive =RGBA 128 128 0 1
+orange =RGBA 255 140 0 1
+purple = RGBA 186 85 211 1
+pink = RGBA 248 24 148 1
+red = RGBA 256 0 0 1
+sky = RGBA 179 228 239 1
+sea = RGBA 46 139 87 1
+teal = RGBA 0 128 128 1
+yellow = RGBA 204 204 0 1
 
 g = 0.1
 a = 0.06
@@ -47,6 +56,10 @@ type Msg = Tick Float GetKeyState
          | LoginButton
          | SignupButton
          | GotAuth (Result Http.Error String)
+         | Length String
+         | Width String
+         | Colour Colour
+         | AddPlatform
 
 type alias Model = 
     {
@@ -62,7 +75,10 @@ type alias Model =
         platform : PlatformTuples,
         username : String,
         password : String,
-        confirmpassword : String
+        confirmpassword : String,
+        length : String,
+        width : String,
+        pcolour : Colour
     }
 
 type Page = Login | Signup | Game
@@ -72,68 +88,6 @@ type Colour = RGBA Int Int Int Float
 type alias PlatformTuples = List ((Float,Float),(Float,Float),Colour)
 
 type alias FourTuples = ((Float,Float),(Float,Float))
-
-encodeColour : Colour -> E.Value
-encodeColour (RGBA r gr b al) =
-    E.object
-        [
-            ("r",E.int r)
-        ,   ("g",E.int gr)
-        ,   ("b",E.int b)        
-        ,   ("a",E.float al)        
-        ]
-
-encodeDoubleTuple : (Float,Float) -> E.Value
-encodeDoubleTuple (fst,snd) =
-    E.object
-        [
-            ("f", E.float fst)
-        ,   ("s", E.float snd)
-        ]
-
-encodeTripleTuple : ((Float,Float),(Float,Float),Colour) -> E.Value
-encodeTripleTuple (xval,yval,colour) = 
-    E.object
-        [
-            ("xvals", encodeDoubleTuple xval),
-            ("yvals", encodeDoubleTuple yval),
-            ("colours", encodeColour colour)
-        ]
-
-encodeList : List ((Float,Float),(Float,Float),Colour) -> E.Value
-encodeList platforms = 
-    E.object
-        [
-            ("platforms", E.list encodeTripleTuple platforms)
-        ]
-
-encodeCredentials : (String,String) -> E.Value
-encodeCredentials (user,pass) = 
-    E.object
-        [
-            ("username", E.string user),
-            ("password", E.string pass)
-        ]
-
-decodeColour : D.Decoder Colour
-decodeColour =
-    D.map4 RGBA (D.field "r" D.int) (D.field "g" D.int) (D.field "b" D.int) (D.field "a" D.float)        
-
-decodeDoubleTuple : D.Decoder (Float,Float)
-decodeDoubleTuple=
-    D.map2 Tuple.pair (D.field "f" D.float) (D.field "s" D.float)
-
-decodeTripleTuple : D.Decoder ((Float,Float),(Float,Float),Colour)
-decodeTripleTuple = 
-    D.map3 (\x b c -> (x,b,c)) (D.field "xvals" decodeDoubleTuple) (D.field "yvals" decodeDoubleTuple) (D.field "colours" decodeColour) 
-
-decodeList : D.Decoder PlatformTuples
-decodeList = 
-    D.list decodeTripleTuple
-
-toSVG : Colour -> Color
-toSVG myColour = case myColour of
-                    RGBA rr gg bb aa -> rgba (toFloat rr) (toFloat gg) (toFloat bb) aa
 
 init : () -> Url.Url -> Key -> ( Model, Cmd Msg )
 init flags url key =    let
@@ -152,7 +106,10 @@ init flags url key =    let
                         platform = initialPlatforms,
                         username = "",
                         password = "",
-                        confirmpassword = ""
+                        confirmpassword = "",
+                        length = "",
+                        width = "",
+                        pcolour = black
                         }, Cmd.none) 
 
 
@@ -183,6 +140,29 @@ update msg model =
                 posy4new = posyUpdate model.posx model.posy model.velx model.vely isAlive4 4 model.platform
             in ({model | posx = ((posx1new,posx2new),(posx3new,posx4new)), velx = ((velx1new,velx2new),(velx3new,velx4new)), posy = ((posy1new,posy2new),(posy3new,posy4new)), vely = ((vely1new,vely2new),(vely3new,vely4new))}, Cmd.none)
 
+        Length input -> ({ model | length = input }, Cmd.none)
+        Width input -> ({ model | width = input }, Cmd.none)
+        Colour input -> ({model | pcolour = input}, Cmd.none)
+        AddPlatform -> 
+            let
+                xmin = (String.toFloat model.length)
+                xmax = (String.toFloat model.length)
+                ymin = (String.toFloat model.width)
+                ymax = (String.toFloat model.width)
+                xminhalf = case xmin of
+                                Just x -> -0.5*x
+                                Nothing -> 0
+                xmaxhalf = case xmax of
+                                Just x -> 0.5*x
+                                Nothing -> 0
+                yminhalf = case ymin of
+                                Just x -> -0.5*x
+                                Nothing -> 0
+                ymaxhalf = case ymax of
+                                Just x -> 0.5*x
+                                Nothing -> 0
+            in ({model | platform = model.platform ++ [((xminhalf,xmaxhalf),(yminhalf,ymaxhalf),model.pcolour)]}, Cmd.none)
+            
         SaveTap -> (model, sendJsonPost model.platform)
         LoadTap -> (model, Cmd.none)
         NewTap -> ({ model | platform = [] }, Cmd.none)
@@ -191,7 +171,7 @@ update msg model =
         Password input -> ({ model | password = input }, Cmd.none)
         PasswordConfirm input -> ({ model | confirmpassword = input }, Cmd.none)
 
-        LoginButton -> (model, Cmd.none)
+        LoginButton -> (model, loginPost model)
         SignupButton -> (model, Cmd.none)
 
         SignupTap -> ({model | page = Signup, username = "", password = "", confirmpassword = ""}, Cmd.none)
@@ -214,30 +194,13 @@ update msg model =
                 Err error ->
                     ( model , Cmd.none)
 
-loginPost : (String,String) -> Cmd Msg
-loginPost (user,pass)= 
-    Http.post
-        {
-            url = "https://mac1xa3.ca/e/zhua15/Project03/login",
-            body = Http.jsonBody <| (encodeCredentials (user,pass)),
-            expect = Http.expectString GotAuth 
-        }
-
-sendJsonPost : PlatformTuples -> Cmd Msg
-sendJsonPost myPlatforms =
-    Http.post
-        { url = "https://mac1xa3.ca/e/zhua15/Project03/saveModel/"
-        , body = Http.jsonBody <| encodeList myPlatforms
-        , expect = Http.expectJson SendPlatforms decodeList
-        }
-
 view : Model -> { title : String, body : Collage Msg }
 view model = 
     let
         title = "CubeStomp"
         body = collage 100 100 whichScreen
         whichScreen = case model.page of
-                        Login -> loginScreen
+                        Login -> gameScreen
                         Signup -> signupScreen
                         Game -> gameScreen
                     
@@ -252,7 +215,7 @@ view model =
         toLogin = [GraphicSVG.text "Already a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (30,-45) |> notifyTap LoginTap]
         notgamebackground = [square 100|> filled (toSVG sky)]
         
-        gameScreen = background ++ playergroup ++ playerModelGroup ++ platforms ++ border ++ buttons
+        gameScreen = background ++ playergroup ++ playerModelGroup ++ platforms ++ border ++ buttons ++ addplatformAll
         background = [square 80 |> filled (toSVG alice)]
         border = [square 80 |> outlined (solid 1) GraphicSVG.black]
 
@@ -269,14 +232,27 @@ view model =
         playerModel4 = playerPiece model 4
 
         platforms = (platformGenerate model.platform)
+        addplatformLength = [html 20 20 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "5px", placeholder "L", value model.length, onInput Length ] []]) |> move (-15,43)]
+        addplatformWidth = [html 20 20 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "5px", placeholder "W", value model.width, onInput Width ] []]) |> move (-15,28)]
+        addplatformColour = [square 3 |> filled (toSVG blue) |> move (-9, -10) |> notifyTap (Colour blue)] ++ [square 3 |> filled (toSVG sky) |> move (-13, -10) |> notifyTap (Colour sky)] ++ 
+                            [square 3 |> filled (toSVG orange) |> move (-9, -14) |> notifyTap (Colour orange)] ++ [square 3 |> filled (toSVG purple) |> move (-13, -14) |> notifyTap (Colour purple)] ++ 
+                            [square 3 |> filled (toSVG black) |> move (-9, -18) |> notifyTap (Colour black)] ++ [square 3 |> filled(toSVG green) |> move (-13, -18) |> notifyTap (Colour green)] ++ 
+                            [square 3 |> filled (toSVG red) |> move (-9, -22) |> notifyTap (Colour red)] ++ [square 3 |> filled (toSVG pink) |> move (-13, -22) |> notifyTap (Colour pink)] ++
+                            [square 3 |> filled (toSVG brown) |> move (-9, -26) |> notifyTap (Colour brown)] ++ [square 3 |> filled (toSVG maroon) |> move (-13, -26) |> notifyTap (Colour maroon)] ++ 
+                            [square 3 |> filled (toSVG olive) |> move (-9, -30) |> notifyTap (Colour olive)] ++ [square 3 |> filled (toSVG teal) |> move (-13, -30) |> notifyTap (Colour teal)] ++ 
+                            [square 3 |> filled (toSVG yellow) |> move (-9, -34) |> notifyTap (Colour yellow)] ++ [square 3 |> filled(toSVG grey) |> move (-13, -34) |> notifyTap (Colour grey)] ++ 
+                            [square 3 |> filled (toSVG sea) |> move (-9, -38) |> notifyTap (Colour sea)] ++ [square 3 |> filled (toSVG lime) |> move (-13, -38)]
+        addplatformButton = [rectangle 8 8 |> filled GraphicSVG.grey |> move (-11, -2) |> notifyTap AddPlatform ] ++ [GraphicSVG.text "Add" |> GraphicSVG.size 3|> filled GraphicSVG.black |> move (-14, -3) |> notifyTap AddPlatform ]
+        addplatformAll = [group (addplatformLength ++ addplatformWidth ++ addplatformColour ++ addplatformButton) |> move (56,0)]
 
         buttons = [group[save,load,new,saveText,loadText,newText]]   
         saveText = GraphicSVG.text "Save" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, 7) |> notifyTap SaveTap
         loadText = GraphicSVG.text "Load" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, -1) |> notifyTap LoadTap
         newText = GraphicSVG.text "New" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, -9) |> notifyTap NewTap
-        save =  square 7 |> filled grey |> move (-45,8) |> notifyTap SaveTap
-        load = square 7 |> filled grey |> move (-45,0) |> notifyTap LoadTap
-        new = square 7 |> filled grey |> move (-45,-8) |> notifyTap NewTap
+        save =  square 7 |> filled GraphicSVG.grey |> move (-45,8) |> notifyTap SaveTap
+        load = square 7 |> filled GraphicSVG.grey |> move (-45,0) |> notifyTap LoadTap
+        new = square 7 |> filled GraphicSVG.grey |> move (-45,-8) |> notifyTap NewTap
+        
 
     in { title = title , body = body }
 
@@ -651,3 +627,84 @@ platformGenerate platformList =
         [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2))] ++ platformGenerate x2
     else
         [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2))]
+
+--------------------- server stuff
+
+encodeColour : Colour -> E.Value
+encodeColour (RGBA r gr b al) =
+    E.object
+        [
+            ("r",E.int r)
+        ,   ("g",E.int gr)
+        ,   ("b",E.int b)        
+        ,   ("a",E.float al)        
+        ]
+
+encodeDoubleTuple : (Float,Float) -> E.Value
+encodeDoubleTuple (fst,snd) =
+    E.object
+        [
+            ("f", E.float fst)
+        ,   ("s", E.float snd)
+        ]
+
+encodeTripleTuple : ((Float,Float),(Float,Float),Colour) -> E.Value
+encodeTripleTuple (xval,yval,colour) = 
+    E.object
+        [
+            ("xvals", encodeDoubleTuple xval),
+            ("yvals", encodeDoubleTuple yval),
+            ("colours", encodeColour colour)
+        ]
+
+encodeList : List ((Float,Float),(Float,Float),Colour) -> E.Value
+encodeList platforms = 
+    E.object
+        [
+            ("platforms", E.list encodeTripleTuple platforms)
+        ]
+
+encodeCredentials : Model -> E.Value
+encodeCredentials model = 
+    E.object
+        [
+            ("username", E.string model.username),
+            ("password", E.string model.password)
+        ]
+
+decodeColour : D.Decoder Colour
+decodeColour =
+    D.map4 RGBA (D.field "r" D.int) (D.field "g" D.int) (D.field "b" D.int) (D.field "a" D.float)        
+
+decodeDoubleTuple : D.Decoder (Float,Float)
+decodeDoubleTuple=
+    D.map2 Tuple.pair (D.field "f" D.float) (D.field "s" D.float)
+
+decodeTripleTuple : D.Decoder ((Float,Float),(Float,Float),Colour)
+decodeTripleTuple = 
+    D.map3 (\x b c -> (x,b,c)) (D.field "xvals" decodeDoubleTuple) (D.field "yvals" decodeDoubleTuple) (D.field "colours" decodeColour) 
+
+decodeList : D.Decoder PlatformTuples
+decodeList = 
+    D.list decodeTripleTuple
+
+toSVG : Colour -> Color
+toSVG myColour = case myColour of
+                    RGBA rr gg bb aa -> rgba (toFloat rr) (toFloat gg) (toFloat bb) aa
+
+loginPost : Model -> Cmd Msg
+loginPost model = 
+    Http.post
+        {
+            url = "https://mac1xa3.ca/e/zhua15/Project03/login/",
+            body = Http.jsonBody <| (encodeCredentials model),
+            expect = Http.expectString GotAuth 
+        }
+
+sendJsonPost : PlatformTuples -> Cmd Msg
+sendJsonPost myPlatforms =
+    Http.post
+        { url = "https://mac1xa3.ca/e/zhua15/Project03/saveModel/"
+        , body = Http.jsonBody <| encodeList myPlatforms
+        , expect = Http.expectJson SendPlatforms decodeList
+        }
