@@ -5,5 +5,5 @@ urlpatterns = [
 	path("saveModel/", views.saveModel, name = "save"),
 	path("loadModel/", views.loadModel, name = "load"),
 	path("login/", views.login, name = "login"),
-	path("signup/", views.signUp, name = "signup")
+	path("signUp/", views.signUp, name = "signup")
 ] 

@@ -34,12 +34,13 @@ g = 0.1
 a = 0.06
 friction = 0.03
 jumpStrength = 2
-initialPlatforms = [((-20,-4),(-38,-36),red),((-4,30),(-39,-38),blue),((-10,10),(-16,-14),purple),((20,30),(6,8),orange),((-10,0),(20,22),green)]
+initialPlatforms = [((-20,-4),(-38,-36),red),((-4,30),(-39,-38),blue),((-10,10),(-16,-14),purple),((20,30),(6,8),orange),((-10,0),(20,22),grey)]
 numplayers = 2 -- will increase player limit beyond 2 soon
 playerColours = ((purple,blue),(red,green))
 cubesize = 3
 startposx = ((-25,-10),(10,25))
 startposy = ((-38,-38),(-38,-38))
+wincolour = grey
 
 type Msg = Tick Float GetKeyState
          | SaveTap
@@ -60,6 +61,10 @@ type Msg = Tick Float GetKeyState
          | Width String
          | Colour Colour
          | AddPlatform
+         | PlayAgain
+         | PlatformMoveStart (Float,Float)
+         | PlatformMoving Int (Float,Float)
+         | PlatformMoveEnd
 
 type alias Model = 
     {
@@ -78,10 +83,14 @@ type alias Model =
         confirmpassword : String,
         length : String,
         width : String,
-        pcolour : Colour
+        pcolour : Colour,
+        pstartx : Float,
+        pstarty : Float,
+        pnum : Int,
+        pmovable : Bool
     }
 
-type Page = Login | Signup | Game
+type Page = Login | Signup | Game | YouWin
 
 type Colour = RGBA Int Int Int Float
 
@@ -103,13 +112,17 @@ init flags url key =    let
                         vely = ((0,0),(0,0)),
                         posx = startposx,
                         posy = startposy,
-                        platform = initialPlatforms,
                         username = "",
                         password = "",
                         confirmpassword = "",
                         length = "",
                         width = "",
-                        pcolour = black
+                        platform = initialPlatforms,
+                        pcolour = black,
+                        pstartx = 0,
+                        pstarty = 0,
+                        pnum = 0,
+                        pmovable = False
                         }, Cmd.none) 
 
 
@@ -130,7 +143,7 @@ update msg model =
                 posx2new = posxUpdate model.posx model.posy model.velx model.vely isAlive2 2 model.platform
                 vely2new = velyUpdate model.posx model.posy model.velx model.vely arrowY isAlive2 2 model.platform
                 posy2new = posyUpdate model.posx model.posy model.velx model.vely isAlive2 2 model.platform
-                velx3new = velxUpdate model.posx model.posy model.velx model.vely 0 isAlive3 3 model.platform -- Will implement multiplayer
+                velx3new = velxUpdate model.posx model.posy model.velx model.vely 0 isAlive3 3 model.platform -- 2 player for now
                 posx3new = posxUpdate model.posx model.posy model.velx model.vely isAlive3 3 model.platform
                 vely3new = velyUpdate model.posx model.posy model.velx model.vely 0 isAlive3 3 model.platform
                 posy3new = posyUpdate model.posx model.posy model.velx model.vely isAlive3 3 model.platform
@@ -138,7 +151,10 @@ update msg model =
                 posx4new = posxUpdate model.posx model.posy model.velx model.vely isAlive4 4 model.platform
                 vely4new = velyUpdate model.posx model.posy model.velx model.vely 0 isAlive4 4 model.platform
                 posy4new = posyUpdate model.posx model.posy model.velx model.vely isAlive4 4 model.platform
-            in ({model | posx = ((posx1new,posx2new),(posx3new,posx4new)), velx = ((velx1new,velx2new),(velx3new,velx4new)), posy = ((posy1new,posy2new),(posy3new,posy4new)), vely = ((vely1new,vely2new),(vely3new,vely4new))}, Cmd.none)
+            in  if (isWin model model.platform) == True then
+                    ({model | page = YouWin}, Cmd.none)
+                else 
+                    ({model | posx = ((posx1new,posx2new),(posx3new,posx4new)), velx = ((velx1new,velx2new),(velx3new,velx4new)), posy = ((posy1new,posy2new),(posy3new,posy4new)), vely = ((vely1new,vely2new),(vely3new,vely4new))}, Cmd.none)
 
         Length input -> ({ model | length = input }, Cmd.none)
         Width input -> ({ model | width = input }, Cmd.none)
@@ -161,18 +177,58 @@ update msg model =
                 ymaxhalf = case ymax of
                                 Just x -> 0.5*x
                                 Nothing -> 0
-            in ({model | platform = model.platform ++ [((xminhalf,xmaxhalf),(yminhalf,ymaxhalf),model.pcolour)]}, Cmd.none)
+            in  if xminhalf >= 0 || yminhalf >= 0 then
+                    (model, Cmd.none)
+                else
+                    ({model | platform = model.platform ++ [((xminhalf,xmaxhalf),(yminhalf,ymaxhalf),model.pcolour)]}, Cmd.none)
             
         SaveTap -> (model, sendJsonPost model.platform)
         LoadTap -> (model, Cmd.none)
-        NewTap -> ({ model | platform = [] }, Cmd.none)
+        NewTap -> ({ model | platform = [], page = Game}, Cmd.none)
 
         Username input -> ({ model | username = input }, Cmd.none)
         Password input -> ({ model | password = input }, Cmd.none)
         PasswordConfirm input -> ({ model | confirmpassword = input }, Cmd.none)
 
         LoginButton -> (model, loginPost model)
-        SignupButton -> (model, Cmd.none)
+        SignupButton -> if model.confirmpassword == model.password then
+                            (model, signupPost model)
+                        else
+                            (model, Cmd.none)
+        PlayAgain -> ({model | page = Game}, Cmd.none)
+        PlatformMoveStart (x,y) -> ({model | pstartx = x, pstarty = y, pmovable = True}, Cmd.none)
+        PlatformMoving pnum (x,y) -> 
+            let
+                movex = x - model.pstartx
+                movey = y - model.pstarty
+                toChange =  if pnum == 1 then
+                                case head(model.platform) of
+                                    Just anything -> anything
+                                    _ -> ((0,0),(0,0),blue)
+                            else
+                                case head(drop (pnum-1) (take pnum model.platform)) of
+                                    Just anything -> anything
+                                    _ -> ((0,0),(0,0),blue)
+                ((xmin,xmax),(ymin,ymax),colour) = toChange
+                mouseMoveX = x - model.pstartx
+                mouseMoveY = y - model.pstarty
+                newPlatform =   if x <= -40 && x >= -50 && y <= -10 && y >= -40 then
+                                    []
+                                else
+                                    [((xmin+mouseMoveX,xmax+mouseMoveX),(ymin+mouseMoveY,ymax+mouseMoveY),colour)]
+                inFront =   if pnum == 1 then
+                                []
+                            else
+                                take (pnum-1) model.platform
+                inBack =    drop pnum model.platform
+                newplatforms = inFront ++ newPlatform ++ inBack
+            in 
+            if model.pmovable == True then
+                ({model | platform = newplatforms, pstartx = x, pstarty = y},Cmd.none)
+            else
+                (model, Cmd.none)
+
+        PlatformMoveEnd -> ({model | pmovable = False}, Cmd.none)
 
         SignupTap -> ({model | page = Signup, username = "", password = "", confirmpassword = ""}, Cmd.none)
         LoginTap ->  ({model | page = Login, username = "", password = "", confirmpassword = ""}, Cmd.none)
@@ -200,9 +256,10 @@ view model =
         title = "CubeStomp"
         body = collage 100 100 whichScreen
         whichScreen = case model.page of
-                        Login -> gameScreen
+                        Login -> loginScreen
                         Signup -> signupScreen
                         Game -> gameScreen
+                        YouWin -> gameScreen ++ [GraphicSVG.text "You Win!" |> GraphicSVG.size 10 |> GraphicSVG.filled GraphicSVG.black |> move (-20,0)]
                     
         loginScreen = notgamebackground ++ usernameBox ++ passwordBox ++ loginButton ++ toSignup
         signupScreen = notgamebackground ++ [group (usernameBox ++ passwordBox ++ confirmpasswordBox ++ signupButton) |> move (0,10)] ++ toLogin
@@ -215,7 +272,7 @@ view model =
         toLogin = [GraphicSVG.text "Already a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (30,-45) |> notifyTap LoginTap]
         notgamebackground = [square 100|> filled (toSVG sky)]
         
-        gameScreen = background ++ playergroup ++ playerModelGroup ++ platforms ++ border ++ buttons ++ addplatformAll
+        gameScreen = background ++ playergroup ++ playerModelGroup ++ border ++ buttons ++ addplatformAll ++ delete ++ platforms
         background = [square 80 |> filled (toSVG alice)]
         border = [square 80 |> outlined (solid 1) GraphicSVG.black]
 
@@ -231,7 +288,7 @@ view model =
         playerModel3 = playerPiece model 3
         playerModel4 = playerPiece model 4
 
-        platforms = (platformGenerate model.platform)
+        platforms = (platformGenerate 1 model.platform)
         addplatformLength = [html 20 20 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "5px", placeholder "L", value model.length, onInput Length ] []]) |> move (-15,43)]
         addplatformWidth = [html 20 20 (div [] [input [ Html.Attributes.style "font-size" "3px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "5px", placeholder "W", value model.width, onInput Width ] []]) |> move (-15,28)]
         addplatformColour = [square 3 |> filled (toSVG blue) |> move (-9, -10) |> notifyTap (Colour blue)] ++ [square 3 |> filled (toSVG sky) |> move (-13, -10) |> notifyTap (Colour sky)] ++ 
@@ -241,9 +298,11 @@ view model =
                             [square 3 |> filled (toSVG brown) |> move (-9, -26) |> notifyTap (Colour brown)] ++ [square 3 |> filled (toSVG maroon) |> move (-13, -26) |> notifyTap (Colour maroon)] ++ 
                             [square 3 |> filled (toSVG olive) |> move (-9, -30) |> notifyTap (Colour olive)] ++ [square 3 |> filled (toSVG teal) |> move (-13, -30) |> notifyTap (Colour teal)] ++ 
                             [square 3 |> filled (toSVG yellow) |> move (-9, -34) |> notifyTap (Colour yellow)] ++ [square 3 |> filled(toSVG grey) |> move (-13, -34) |> notifyTap (Colour grey)] ++ 
-                            [square 3 |> filled (toSVG sea) |> move (-9, -38) |> notifyTap (Colour sea)] ++ [square 3 |> filled (toSVG lime) |> move (-13, -38)]
+                            [square 3 |> filled (toSVG sea) |> move (-9, -38) |> notifyTap (Colour sea)] ++ [square 3 |> filled (toSVG lime) |> move (-13, -38) |> notifyTap (Colour lime)]
+        winColour = [GraphicSVG.text "V" |> GraphicSVG.size 3 |> filled (toSVG black) |> move (41.9, -35) |> notifyTap (Colour wincolour)]
         addplatformButton = [rectangle 8 8 |> filled GraphicSVG.grey |> move (-11, -2) |> notifyTap AddPlatform ] ++ [GraphicSVG.text "Add" |> GraphicSVG.size 3|> filled GraphicSVG.black |> move (-14, -3) |> notifyTap AddPlatform ]
-        addplatformAll = [group (addplatformLength ++ addplatformWidth ++ addplatformColour ++ addplatformButton) |> move (56,0)]
+        addplatformAll = [group (addplatformLength ++ addplatformWidth ++ addplatformColour ++ addplatformButton) |> move (56,0)] ++ winColour
+        delete = [square 7 |> filled GraphicSVG.grey |> move (-45,-25)] ++ [rectangle 8 2 |> filled GraphicSVG.grey |> move (-45,-20)] ++ [rectangle 3 0.5 |> filled GraphicSVG.grey |> move (-45,-19)] ++ [rectangle 10 15 |> outlined (solid 0.2) GraphicSVG.black |> move (-45,-25)]
 
         buttons = [group[save,load,new,saveText,loadText,newText]]   
         saveText = GraphicSVG.text "Save" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, 7) |> notifyTap SaveTap
@@ -598,24 +657,24 @@ isPlatform posx posy x =
     let
         header = case head(x) of
                     Just v -> v
-                    Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
+                    Nothing -> ((300,300),(300,300),(RGBA 0 0 0 0))
         ((xmin,xmax),(ymin,ymax),colour) = header
         x2 = case tail(x) of
                 Just v -> v
                 Nothing -> []
-    in  if x2 == [] && header == ((0,0),(0,0),(RGBA 0 0 0 0)) then
+    in  if x2 == [] && header == ((300,300),(300,300),(RGBA 0 0 0 0)) then
             False
         else if posy == ymax + cubesize/2 && posx > xmin - (cubesize/2) && posx < xmax + (cubesize/2) then
             True
         else
             isPlatform posx posy x2
 
-platformGenerate : PlatformTuples -> List (Shape userMsg)
-platformGenerate platformList = 
+platformGenerate : Int -> PlatformTuples -> List (Shape Msg)
+platformGenerate pnum platformList = 
     let
         header =  case head(platformList) of
                     Just v -> v
-                    Nothing -> ((0,0),(0,0),(RGBA 0 0 0 0))
+                    Nothing -> ((300,300),(300,300),(RGBA 0 0 0 0))
 
         ((xmin,xmax),(ymin,ymax),colour) = header
         
@@ -624,9 +683,33 @@ platformGenerate platformList =
                 Nothing -> []
     in 
     if x2 /= [] then
-        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2))] ++ platformGenerate x2
+        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2)) |> notifyMouseDownAt PlatformMoveStart |> notifyMouseMoveAt (PlatformMoving pnum) |> notifyMouseUp PlatformMoveEnd |> notifyLeave PlatformMoveEnd] ++ platformGenerate (pnum + 1) x2
     else
-        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2))]
+        [rectangle (abs(xmax - xmin)) (abs(ymax - ymin)) |> filled (toSVG colour) |> move (((xmin + xmax)/2),((ymax + ymin)/2)) |> notifyMouseDownAt PlatformMoveStart |> notifyMouseMoveAt (PlatformMoving pnum) |> notifyMouseUp PlatformMoveEnd |> notifyLeave PlatformMoveEnd]
+
+isWin : Model -> PlatformTuples -> Bool
+isWin model platform =
+    let
+        header =  case head(platform) of
+                    Just v -> v
+                    Nothing -> ((300,300),(300,300),(RGBA 0 0 0 0))
+
+        ((xmin,xmax),(ymin,ymax),colour) = header
+        tailer = case tail(platform) of
+                Just v -> v
+                Nothing -> []
+        ((x1,x2),(x3,x4)) = model.posx
+        ((y1,y2),(y3,y4)) = model.posy
+    in
+    if tailer == [] && header == ((300,300),(300,300),(RGBA 0 0 0 0)) then
+        False
+    else if (y1 == ymax + cubesize/2 || y2 == ymax + cubesize/2 || y3 == ymax + cubesize/2 || y4 == ymax + cubesize/2 )
+            && (x1 > xmin - (cubesize/2) || x2 > xmin - (cubesize/2) || x3 > xmin - (cubesize/2) || x4 > xmin - (cubesize/2))
+            && (x1 < xmax + (cubesize/2) || x2 < xmax + (cubesize/2) || x3 < xmax + (cubesize/2) || x4 < xmax + (cubesize/2))
+            && colour == wincolour then
+        True
+    else
+        isWin model tailer
 
 --------------------- server stuff
 
@@ -697,7 +780,16 @@ loginPost model =
     Http.post
         {
             url = "https://mac1xa3.ca/e/zhua15/Project03/login/",
-            body = Http.jsonBody <| (encodeCredentials model),
+            body = Http.jsonBody <| encodeCredentials model,
+            expect = Http.expectString GotAuth 
+        }
+
+signupPost : Model -> Cmd Msg
+signupPost model = 
+    Http.post
+        {
+            url = "https://mac1xa3.ca/e/zhua15/Project03/signUp/",
+            body = Http.jsonBody <| encodeCredentials model,
             expect = Http.expectString GotAuth 
         }
 

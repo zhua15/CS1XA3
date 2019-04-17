@@ -10108,6 +10108,15 @@ var author$project$Main$sendJsonPost = function (myPlatforms) {
 			url: 'https://mac1xa3.ca/e/zhua15/Project03/saveModel/'
 		});
 };
+var author$project$Main$signupPost = function (model) {
+	return elm$http$Http$post(
+		{
+			body: elm$http$Http$jsonBody(
+				author$project$Main$encodeCredentials(model)),
+			expect: elm$http$Http$expectString(author$project$Main$GotAuth),
+			url: 'https://mac1xa3.ca/e/zhua15/Project03/signUp/'
+		});
+};
 var author$project$Main$a = 6.0e-2;
 var author$project$Main$friction = 3.0e-2;
 var author$project$Main$helperVelx = F4(
@@ -10670,7 +10679,9 @@ var author$project$Main$update = F2(
 					model,
 					author$project$Main$loginPost(model));
 			case 'SignupButton':
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+				return _Utils_eq(model.confirmpassword, model.password) ? _Utils_Tuple2(
+					model,
+					author$project$Main$signupPost(model)) : _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 			case 'PlayAgain':
 				return _Utils_Tuple2(
 					_Utils_update(
