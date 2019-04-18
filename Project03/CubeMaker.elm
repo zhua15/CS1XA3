@@ -48,7 +48,8 @@ type Msg = Tick Float GetKeyState
          | NewTap
          | MakeRequest Browser.UrlRequest
          | UrlChange Url.Url
-         | SendPlatforms (Result Http.Error PlatformTuples)
+         | GotSave (Result Http.Error String)
+         | GotLoad (Result Http.Error PlatformTuples)
          | Username String
          | Password String
          | PasswordConfirm String
@@ -183,7 +184,7 @@ update msg model =
                     ({model | platform = model.platform ++ [((xminhalf,xmaxhalf),(yminhalf,ymaxhalf),model.pcolour)]}, Cmd.none)
             
         SaveTap -> (model, sendJsonPost model.platform)
-        LoadTap -> (model, Cmd.none)
+        LoadTap -> (model, getJsonPost model)
         NewTap -> ({ model | platform = [], page = Game}, Cmd.none)
 
         Username input -> ({ model | username = input }, Cmd.none)
@@ -242,13 +243,16 @@ update msg model =
                 Ok _ -> (model, Cmd.none)
                 Err error -> (model, Cmd.none)
 
-        SendPlatforms result ->
+        GotSave result ->
             case result of
-                Ok val ->
-                    ({model | platform = val}, Cmd.none)
-                    
-                Err error ->
-                    ( model , Cmd.none)
+                Ok "Save Success" -> (model,Cmd.none)
+                Ok _ -> (model, Cmd.none)
+                Err error -> (model,Cmd.none)
+
+        GotLoad result ->
+            case result of
+                Ok val -> ({model | platform = val}, Cmd.none)
+                Err error -> (model,Cmd.none)
 
 view : Model -> { title : String, body : Collage Msg }
 view model = 
@@ -798,5 +802,13 @@ sendJsonPost myPlatforms =
     Http.post
         { url = "https://mac1xa3.ca/e/zhua15/Project03/saveModel/"
         , body = Http.jsonBody <| encodeList myPlatforms
-        , expect = Http.expectJson SendPlatforms decodeList
+        , expect = Http.expectString GotSave
+        }
+
+getJsonPost : Model -> Cmd Msg
+getJsonPost model =
+    Http.post
+         { url = "https://mac1xa3.ca/e/zhua15/Project03/loadModel/"
+        , body = Http.jsonBody <| encodeCredentials model
+        , expect = Http.expectJson GotLoad decodeList
         }

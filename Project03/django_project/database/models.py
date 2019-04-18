@@ -3,14 +3,13 @@ from django.contrib.auth.models import User
 
 class PlatformsManager(models.Manager):
    def create_user_info(self,username,password,json):
-      user = User.objects.create_user(username = username, password = passoword)
+      user = User.objects.create_user(username = username, password = password)
       userPlatforms = self.create(user = user,json = json)
       return userPlatforms
 
 class Platforms(models.Model):
    json = models.CharField(max_length = 3000, default = "")
-   user = models.ForeignKey(User,on_delete = models.CASCADE)
-   num = models.IntegerField(primary_key = True)
+   user = models.OneToOneField(User,on_delete = models.CASCADE,primary_key = True)
    objects = PlatformsManager()
 
 # Create your models here.

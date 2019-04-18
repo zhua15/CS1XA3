@@ -29,19 +29,24 @@ def signUp(request):
       newuser.save()
       userinfo.save()
       djangoLogin(request,newuser)
-      return HttpResponse("Success")
+      return HttpResponse("Login Success")
    else:
-      return HttpResponse("Failure")
+      return HttpResponse("Login Fail")
 def saveModel(request):
    myJson = json.loads(request.body)
    platforms = myJson.get("platforms","")
-   if platforms != "":
-      newPlatforms = Platforms(json=myJson)
-      newPlatforms.save()
-      return JsonResponse(platforms)
-   return JsonReponse("")
+   user = request.user
+   if user.is_authenticated:
+      if platforms != "":
+         newPlatforms = Platforms(user=user,json=myJson)
+         newPlatforms.save()
+         HttpResponse("Save Success")
+      return HttpResponse("NoPlatforms")
+   else:
+      return HttpResponse("NotLoggedIn")
 
 def loadModel (request):
-   return JsonResponse("")
+   load = Platforms.objects.first()
+   return JsonResponse({"Platforms":load.json})
 
 # Create your views here.

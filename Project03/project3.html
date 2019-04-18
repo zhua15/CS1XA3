@@ -8848,96 +8848,38 @@ var author$project$Main$subscriptions = function (model) {
 var author$project$Main$Game = {$: 'Game'};
 var author$project$Main$Signup = {$: 'Signup'};
 var author$project$Main$YouWin = {$: 'YouWin'};
-var author$project$Main$cubesize = 3;
-var author$project$Main$wincolour = author$project$Main$grey;
-var elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(x);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
+var author$project$Main$GotLoad = function (a) {
+	return {$: 'GotLoad', a: a};
 };
-var elm$core$List$tail = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(xs);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
-};
-var author$project$Main$isWin = F2(
-	function (model, platform) {
-		isWin:
-		while (true) {
-			var tailer = function () {
-				var _n10 = elm$core$List$tail(platform);
-				if (_n10.$ === 'Just') {
-					var v = _n10.a;
-					return v;
-				} else {
-					return _List_Nil;
-				}
-			}();
-			var header = function () {
-				var _n9 = elm$core$List$head(platform);
-				if (_n9.$ === 'Just') {
-					var v = _n9.a;
-					return v;
-				} else {
-					return _Utils_Tuple3(
-						_Utils_Tuple2(300, 300),
-						_Utils_Tuple2(300, 300),
-						A4(author$project$Main$RGBA, 0, 0, 0, 0));
-				}
-			}();
-			var _n0 = model.posy;
-			var _n1 = _n0.a;
-			var y1 = _n1.a;
-			var y2 = _n1.b;
-			var _n2 = _n0.b;
-			var y3 = _n2.a;
-			var y4 = _n2.b;
-			var _n3 = model.posx;
-			var _n4 = _n3.a;
-			var x1 = _n4.a;
-			var x2 = _n4.b;
-			var _n5 = _n3.b;
-			var x3 = _n5.a;
-			var x4 = _n5.b;
-			var _n6 = header;
-			var _n7 = _n6.a;
-			var xmin = _n7.a;
-			var xmax = _n7.b;
-			var _n8 = _n6.b;
-			var ymin = _n8.a;
-			var ymax = _n8.b;
-			var colour = _n6.c;
-			if (_Utils_eq(tailer, _List_Nil) && _Utils_eq(
-				header,
-				_Utils_Tuple3(
-					_Utils_Tuple2(300, 300),
-					_Utils_Tuple2(300, 300),
-					A4(author$project$Main$RGBA, 0, 0, 0, 0)))) {
-				return false;
-			} else {
-				if ((_Utils_eq(y1, ymax + (author$project$Main$cubesize / 2)) || (_Utils_eq(y2, ymax + (author$project$Main$cubesize / 2)) || (_Utils_eq(y3, ymax + (author$project$Main$cubesize / 2)) || _Utils_eq(y4, ymax + (author$project$Main$cubesize / 2))))) && (((_Utils_cmp(x1, xmin - (author$project$Main$cubesize / 2)) > 0) || ((_Utils_cmp(x2, xmin - (author$project$Main$cubesize / 2)) > 0) || ((_Utils_cmp(x3, xmin - (author$project$Main$cubesize / 2)) > 0) || (_Utils_cmp(x4, xmin - (author$project$Main$cubesize / 2)) > 0)))) && (((_Utils_cmp(x1, xmax + (author$project$Main$cubesize / 2)) < 0) || ((_Utils_cmp(x2, xmax + (author$project$Main$cubesize / 2)) < 0) || ((_Utils_cmp(x3, xmax + (author$project$Main$cubesize / 2)) < 0) || (_Utils_cmp(x4, xmax + (author$project$Main$cubesize / 2)) < 0)))) && _Utils_eq(colour, author$project$Main$wincolour)))) {
-					return true;
-				} else {
-					var $temp$model = model,
-						$temp$platform = tailer;
-					model = $temp$model;
-					platform = $temp$platform;
-					continue isWin;
-				}
-			}
-		}
+var elm$json$Json$Decode$map4 = _Json_map4;
+var author$project$Main$decodeColour = A5(
+	elm$json$Json$Decode$map4,
+	author$project$Main$RGBA,
+	A2(elm$json$Json$Decode$field, 'r', elm$json$Json$Decode$int),
+	A2(elm$json$Json$Decode$field, 'g', elm$json$Json$Decode$int),
+	A2(elm$json$Json$Decode$field, 'b', elm$json$Json$Decode$int),
+	A2(elm$json$Json$Decode$field, 'a', elm$json$Json$Decode$float));
+var elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
 	});
-var author$project$Main$GotAuth = function (a) {
-	return {$: 'GotAuth', a: a};
-};
+var author$project$Main$decodeDoubleTuple = A3(
+	elm$json$Json$Decode$map2,
+	elm$core$Tuple$pair,
+	A2(elm$json$Json$Decode$field, 'f', elm$json$Json$Decode$float),
+	A2(elm$json$Json$Decode$field, 's', elm$json$Json$Decode$float));
+var elm$json$Json$Decode$map3 = _Json_map3;
+var author$project$Main$decodeTripleTuple = A4(
+	elm$json$Json$Decode$map3,
+	F3(
+		function (x, b, c) {
+			return _Utils_Tuple3(x, b, c);
+		}),
+	A2(elm$json$Json$Decode$field, 'xvals', author$project$Main$decodeDoubleTuple),
+	A2(elm$json$Json$Decode$field, 'yvals', author$project$Main$decodeDoubleTuple),
+	A2(elm$json$Json$Decode$field, 'colours', author$project$Main$decodeColour));
+var elm$json$Json$Decode$list = _Json_decodeList;
+var author$project$Main$decodeList = elm$json$Json$Decode$list(author$project$Main$decodeTripleTuple);
 var elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -8964,6 +8906,17 @@ var author$project$Main$encodeCredentials = function (model) {
 				elm$json$Json$Encode$string(model.password))
 			]));
 };
+var elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return elm$core$Result$Err(
+				f(e));
+		}
+	});
 var elm$core$Basics$composeR = F3(
 	function (f, g, x) {
 		return g(
@@ -9387,17 +9340,6 @@ var elm$http$Http$expectStringResponse = F2(
 			elm$core$Basics$identity,
 			A2(elm$core$Basics$composeR, toResult, toMsg));
 	});
-var elm$core$Result$mapError = F2(
-	function (f, result) {
-		if (result.$ === 'Ok') {
-			var v = result.a;
-			return elm$core$Result$Ok(v);
-		} else {
-			var e = result.a;
-			return elm$core$Result$Err(
-				f(e));
-		}
-	});
 var elm$http$Http$BadBody = function (a) {
 	return {$: 'BadBody', a: a};
 };
@@ -9432,12 +9374,20 @@ var elm$http$Http$resolve = F2(
 					toResult(body));
 		}
 	});
-var elm$http$Http$expectString = function (toMsg) {
-	return A2(
-		elm$http$Http$expectStringResponse,
-		toMsg,
-		elm$http$Http$resolve(elm$core$Result$Ok));
-};
+var elm$json$Json$Decode$decodeString = _Json_runOnString;
+var elm$http$Http$expectJson = F2(
+	function (toMsg, decoder) {
+		return A2(
+			elm$http$Http$expectStringResponse,
+			toMsg,
+			elm$http$Http$resolve(
+				function (string) {
+					return A2(
+						elm$core$Result$mapError,
+						elm$json$Json$Decode$errorToString,
+						A2(elm$json$Json$Decode$decodeString, decoder, string));
+				}));
+	});
 var elm$http$Http$jsonBody = function (value) {
 	return A2(
 		_Http_pair,
@@ -9595,6 +9545,111 @@ var elm$http$Http$request = function (r) {
 var elm$http$Http$post = function (r) {
 	return elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: elm$core$Maybe$Nothing, tracker: elm$core$Maybe$Nothing, url: r.url});
+};
+var author$project$Main$getJsonPost = function (model) {
+	return elm$http$Http$post(
+		{
+			body: elm$http$Http$jsonBody(
+				author$project$Main$encodeCredentials(model)),
+			expect: A2(elm$http$Http$expectJson, author$project$Main$GotLoad, author$project$Main$decodeList),
+			url: 'https://mac1xa3.ca/e/zhua15/Project03/loadModel/'
+		});
+};
+var author$project$Main$cubesize = 3;
+var author$project$Main$wincolour = author$project$Main$grey;
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(xs);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Main$isWin = F2(
+	function (model, platform) {
+		isWin:
+		while (true) {
+			var tailer = function () {
+				var _n10 = elm$core$List$tail(platform);
+				if (_n10.$ === 'Just') {
+					var v = _n10.a;
+					return v;
+				} else {
+					return _List_Nil;
+				}
+			}();
+			var header = function () {
+				var _n9 = elm$core$List$head(platform);
+				if (_n9.$ === 'Just') {
+					var v = _n9.a;
+					return v;
+				} else {
+					return _Utils_Tuple3(
+						_Utils_Tuple2(300, 300),
+						_Utils_Tuple2(300, 300),
+						A4(author$project$Main$RGBA, 0, 0, 0, 0));
+				}
+			}();
+			var _n0 = model.posy;
+			var _n1 = _n0.a;
+			var y1 = _n1.a;
+			var y2 = _n1.b;
+			var _n2 = _n0.b;
+			var y3 = _n2.a;
+			var y4 = _n2.b;
+			var _n3 = model.posx;
+			var _n4 = _n3.a;
+			var x1 = _n4.a;
+			var x2 = _n4.b;
+			var _n5 = _n3.b;
+			var x3 = _n5.a;
+			var x4 = _n5.b;
+			var _n6 = header;
+			var _n7 = _n6.a;
+			var xmin = _n7.a;
+			var xmax = _n7.b;
+			var _n8 = _n6.b;
+			var ymin = _n8.a;
+			var ymax = _n8.b;
+			var colour = _n6.c;
+			if (_Utils_eq(tailer, _List_Nil) && _Utils_eq(
+				header,
+				_Utils_Tuple3(
+					_Utils_Tuple2(300, 300),
+					_Utils_Tuple2(300, 300),
+					A4(author$project$Main$RGBA, 0, 0, 0, 0)))) {
+				return false;
+			} else {
+				if ((_Utils_eq(y1, ymax + (author$project$Main$cubesize / 2)) || (_Utils_eq(y2, ymax + (author$project$Main$cubesize / 2)) || (_Utils_eq(y3, ymax + (author$project$Main$cubesize / 2)) || _Utils_eq(y4, ymax + (author$project$Main$cubesize / 2))))) && (((_Utils_cmp(x1, xmin - (author$project$Main$cubesize / 2)) > 0) || ((_Utils_cmp(x2, xmin - (author$project$Main$cubesize / 2)) > 0) || ((_Utils_cmp(x3, xmin - (author$project$Main$cubesize / 2)) > 0) || (_Utils_cmp(x4, xmin - (author$project$Main$cubesize / 2)) > 0)))) && (((_Utils_cmp(x1, xmax + (author$project$Main$cubesize / 2)) < 0) || ((_Utils_cmp(x2, xmax + (author$project$Main$cubesize / 2)) < 0) || ((_Utils_cmp(x3, xmax + (author$project$Main$cubesize / 2)) < 0) || (_Utils_cmp(x4, xmax + (author$project$Main$cubesize / 2)) < 0)))) && _Utils_eq(colour, author$project$Main$wincolour)))) {
+					return true;
+				} else {
+					var $temp$model = model,
+						$temp$platform = tailer;
+					model = $temp$model;
+					platform = $temp$platform;
+					continue isWin;
+				}
+			}
+		}
+	});
+var author$project$Main$GotAuth = function (a) {
+	return {$: 'GotAuth', a: a};
+};
+var elm$http$Http$expectString = function (toMsg) {
+	return A2(
+		elm$http$Http$expectStringResponse,
+		toMsg,
+		elm$http$Http$resolve(elm$core$Result$Ok));
 };
 var author$project$Main$loginPost = function (model) {
 	return elm$http$Http$post(
@@ -9979,38 +10034,9 @@ var author$project$Main$posyUpdate = F7(
 			return isTrueT ? numT : (isTrueB ? numB : (isTrueC ? numC : ((_Utils_cmp(posy + vely, -(39.5 - (author$project$Main$cubesize / 2))) < 0) ? (-(39.5 - (author$project$Main$cubesize / 2))) : ((_Utils_cmp(posy + vely, 39.5 - (author$project$Main$cubesize / 2)) > 0) ? (39.5 - (author$project$Main$cubesize / 2)) : (posy + vely)))));
 		}
 	});
-var author$project$Main$SendPlatforms = function (a) {
-	return {$: 'SendPlatforms', a: a};
+var author$project$Main$GotSave = function (a) {
+	return {$: 'GotSave', a: a};
 };
-var elm$json$Json$Decode$map4 = _Json_map4;
-var author$project$Main$decodeColour = A5(
-	elm$json$Json$Decode$map4,
-	author$project$Main$RGBA,
-	A2(elm$json$Json$Decode$field, 'r', elm$json$Json$Decode$int),
-	A2(elm$json$Json$Decode$field, 'g', elm$json$Json$Decode$int),
-	A2(elm$json$Json$Decode$field, 'b', elm$json$Json$Decode$int),
-	A2(elm$json$Json$Decode$field, 'a', elm$json$Json$Decode$float));
-var elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
-	});
-var author$project$Main$decodeDoubleTuple = A3(
-	elm$json$Json$Decode$map2,
-	elm$core$Tuple$pair,
-	A2(elm$json$Json$Decode$field, 'f', elm$json$Json$Decode$float),
-	A2(elm$json$Json$Decode$field, 's', elm$json$Json$Decode$float));
-var elm$json$Json$Decode$map3 = _Json_map3;
-var author$project$Main$decodeTripleTuple = A4(
-	elm$json$Json$Decode$map3,
-	F3(
-		function (x, b, c) {
-			return _Utils_Tuple3(x, b, c);
-		}),
-	A2(elm$json$Json$Decode$field, 'xvals', author$project$Main$decodeDoubleTuple),
-	A2(elm$json$Json$Decode$field, 'yvals', author$project$Main$decodeDoubleTuple),
-	A2(elm$json$Json$Decode$field, 'colours', author$project$Main$decodeColour));
-var elm$json$Json$Decode$list = _Json_decodeList;
-var author$project$Main$decodeList = elm$json$Json$Decode$list(author$project$Main$decodeTripleTuple);
 var elm$json$Json$Encode$float = _Json_wrap;
 var elm$json$Json$Encode$int = _Json_wrap;
 var author$project$Main$encodeColour = function (_n0) {
@@ -10085,26 +10111,12 @@ var author$project$Main$encodeList = function (platforms) {
 				A2(elm$json$Json$Encode$list, author$project$Main$encodeTripleTuple, platforms))
 			]));
 };
-var elm$json$Json$Decode$decodeString = _Json_runOnString;
-var elm$http$Http$expectJson = F2(
-	function (toMsg, decoder) {
-		return A2(
-			elm$http$Http$expectStringResponse,
-			toMsg,
-			elm$http$Http$resolve(
-				function (string) {
-					return A2(
-						elm$core$Result$mapError,
-						elm$json$Json$Decode$errorToString,
-						A2(elm$json$Json$Decode$decodeString, decoder, string));
-				}));
-	});
 var author$project$Main$sendJsonPost = function (myPlatforms) {
 	return elm$http$Http$post(
 		{
 			body: elm$http$Http$jsonBody(
 				author$project$Main$encodeList(myPlatforms)),
-			expect: A2(elm$http$Http$expectJson, author$project$Main$SendPlatforms, author$project$Main$decodeList),
+			expect: elm$http$Http$expectString(author$project$Main$GotSave),
 			url: 'https://mac1xa3.ca/e/zhua15/Project03/saveModel/'
 		});
 };
@@ -10646,7 +10658,9 @@ var author$project$Main$update = F2(
 					model,
 					author$project$Main$sendJsonPost(model.platform));
 			case 'LoadTap':
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+				return _Utils_Tuple2(
+					model,
+					author$project$Main$getJsonPost(model));
 			case 'NewTap':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -10793,6 +10807,18 @@ var author$project$Main$update = F2(
 								model,
 								{page: author$project$Main$Game}),
 							elm$core$Platform$Cmd$none);
+					} else {
+						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					}
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+				}
+			case 'GotSave':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					if (result.a === 'Save Success') {
+						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 					} else {
 						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 					}
