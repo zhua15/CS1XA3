@@ -88,7 +88,8 @@ type alias Model =
         pstartx : Float,
         pstarty : Float,
         pnum : Int,
-        pmovable : Bool
+        pmovable : Bool,
+        response : String
     }
 
 type Page = Login | Signup | Game | YouWin
@@ -123,7 +124,8 @@ init flags url key =    let
                         pstartx = 0,
                         pstarty = 0,
                         pnum = 0,
-                        pmovable = False
+                        pmovable = False,
+                        response = ""
                         }, Cmd.none) 
 
 
@@ -241,18 +243,36 @@ update msg model =
             case result of
                 Ok "Login Success" -> ({model | page = Game} , Cmd.none)
                 Ok _ -> (model, Cmd.none)
-                Err error -> (model, Cmd.none)
+                Err error -> (handleError model error , Cmd.none)
 
         GotSave result ->
             case result of
                 Ok "Save Success" -> (model,Cmd.none)
                 Ok _ -> (model, Cmd.none)
-                Err error -> (model,Cmd.none)
+                Err error -> (handleError model error , Cmd.none)
 
         GotLoad result ->
             case result of
                 Ok val -> ({model | platform = val}, Cmd.none)
-                Err error -> (model,Cmd.none)
+                Err error -> (handleError model error , Cmd.none)
+
+handleError model error =
+    case error of
+        Http.BadUrl url ->
+            { model | response = "bad url: " ++ url }
+            
+        Http.Timeout ->
+            { model | response = "timeout" }
+
+        Http.NetworkError ->
+            { model | response = "network error" }
+
+        Http.BadStatus i ->
+            { model | response = "bad status " ++ String.fromInt i }
+
+        Http.BadBody body ->
+            { model | response = "bad body " ++ body }
+
 
 view : Model -> { title : String, body : Collage Msg }
 view model = 
@@ -262,7 +282,7 @@ view model =
         whichScreen = case model.page of
                         Login -> loginScreen
                         Signup -> signupScreen
-                        Game -> gameScreen
+                        Game -> gameScreen ++ [GraphicSVG.text model.response |> GraphicSVG.size 2 |> GraphicSVG.filled GraphicSVG.black |> move (-50,0)]
                         YouWin -> gameScreen ++ [GraphicSVG.text "You Win!" |> GraphicSVG.size 10 |> GraphicSVG.filled GraphicSVG.black |> move (-20,0)]
                     
         loginScreen = notgamebackground ++ usernameBox ++ passwordBox ++ loginButton ++ toSignup
@@ -773,7 +793,7 @@ decodeTripleTuple =
 
 decodeList : D.Decoder PlatformTuples
 decodeList = 
-    D.list decodeTripleTuple
+    D.field "platforms" (D.list decodeTripleTuple)
 
 toSVG : Colour -> Color
 toSVG myColour = case myColour of

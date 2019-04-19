@@ -8830,6 +8830,7 @@ var author$project$Main$init = F3(
 				posy: author$project$Main$startposy,
 				pstartx: 0,
 				pstarty: 0,
+				response: '',
 				username: '',
 				velx: _Utils_Tuple2(
 					_Utils_Tuple2(0, 0),
@@ -8879,7 +8880,10 @@ var author$project$Main$decodeTripleTuple = A4(
 	A2(elm$json$Json$Decode$field, 'yvals', author$project$Main$decodeDoubleTuple),
 	A2(elm$json$Json$Decode$field, 'colours', author$project$Main$decodeColour));
 var elm$json$Json$Decode$list = _Json_decodeList;
-var author$project$Main$decodeList = elm$json$Json$Decode$list(author$project$Main$decodeTripleTuple);
+var author$project$Main$decodeList = A2(
+	elm$json$Json$Decode$field,
+	'platforms',
+	elm$json$Json$Decode$list(author$project$Main$decodeTripleTuple));
 var elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -9555,6 +9559,36 @@ var author$project$Main$getJsonPost = function (model) {
 			url: 'https://mac1xa3.ca/e/zhua15/Project03/loadModel/'
 		});
 };
+var author$project$Main$handleError = F2(
+	function (model, error) {
+		switch (error.$) {
+			case 'BadUrl':
+				var url = error.a;
+				return _Utils_update(
+					model,
+					{response: 'bad url: ' + url});
+			case 'Timeout':
+				return _Utils_update(
+					model,
+					{response: 'timeout'});
+			case 'NetworkError':
+				return _Utils_update(
+					model,
+					{response: 'network error'});
+			case 'BadStatus':
+				var i = error.a;
+				return _Utils_update(
+					model,
+					{
+						response: 'bad status ' + elm$core$String$fromInt(i)
+					});
+			default:
+				var body = error.a;
+				return _Utils_update(
+					model,
+					{response: 'bad body ' + body});
+		}
+	});
 var author$project$Main$cubesize = 3;
 var author$project$Main$wincolour = author$project$Main$grey;
 var elm$core$List$head = function (list) {
@@ -10812,7 +10846,9 @@ var author$project$Main$update = F2(
 					}
 				} else {
 					var error = result.a;
-					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(
+						A2(author$project$Main$handleError, model, error),
+						elm$core$Platform$Cmd$none);
 				}
 			case 'GotSave':
 				var result = msg.a;
@@ -10824,7 +10860,9 @@ var author$project$Main$update = F2(
 					}
 				} else {
 					var error = result.a;
-					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(
+						A2(author$project$Main$handleError, model, error),
+						elm$core$Platform$Cmd$none);
 				}
 			default:
 				var result = msg.a;
@@ -10837,7 +10875,9 @@ var author$project$Main$update = F2(
 						elm$core$Platform$Cmd$none);
 				} else {
 					var error = result.a;
-					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(
+						A2(author$project$Main$handleError, model, error),
+						elm$core$Platform$Cmd$none);
 				}
 		}
 	});
@@ -11933,7 +11973,21 @@ var author$project$Main$view = function (model) {
 			case 'Signup':
 				return signupScreen;
 			case 'Game':
-				return gameScreen;
+				return _Utils_ap(
+					gameScreen,
+					_List_fromArray(
+						[
+							A2(
+							MacCASOutreach$graphicsvg$GraphicSVG$move,
+							_Utils_Tuple2(-50, 0),
+							A2(
+								MacCASOutreach$graphicsvg$GraphicSVG$filled,
+								MacCASOutreach$graphicsvg$GraphicSVG$black,
+								A2(
+									MacCASOutreach$graphicsvg$GraphicSVG$size,
+									2,
+									MacCASOutreach$graphicsvg$GraphicSVG$text(model.response))))
+						]));
 			default:
 				return _Utils_ap(
 					gameScreen,

@@ -47,6 +47,8 @@ def saveModel(request):
 
 def loadModel (request):
    load = Platforms.objects.first()
-   return JsonResponse({"Platforms":load.json})
-
+   print(eval(load.json))
+   print(JsonResponse(eval(load.json)).content)
+   return JsonResponse(eval(load.json))
+   #return JsonResponse({"platforms":[]})
 # Create your views here.
