@@ -17,6 +17,9 @@ def login(request):
       return HttpResponse("Login Success")
    else:
       return HttpResponse("Login Fail")
+def logout(request):
+   logout(request)
+   return HttpPost("logged out")
 def signUp(request):
    print(request.body)
    myJson = json.loads(request.body)

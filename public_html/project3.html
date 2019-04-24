@@ -10701,6 +10701,12 @@ var author$project$Main$update = F2(
 						model,
 						{page: author$project$Main$Game, platform: _List_Nil}),
 					elm$core$Platform$Cmd$none);
+			case 'Logout':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{page: author$project$Main$Login}),
+					elm$core$Platform$Cmd$none);
 			case 'Username':
 				var input = msg.a;
 				return _Utils_Tuple2(
@@ -10818,13 +10824,13 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{confirmpassword: '', page: author$project$Main$Signup, password: '', username: ''}),
+						{confirmpassword: '', page: author$project$Main$Signup, password: '', response: '', username: ''}),
 					elm$core$Platform$Cmd$none);
 			case 'LoginTap':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{confirmpassword: '', page: author$project$Main$Login, password: '', username: ''}),
+						{confirmpassword: '', page: author$project$Main$Login, password: '', response: '', username: ''}),
 					elm$core$Platform$Cmd$none);
 			case 'MakeRequest':
 				var req = msg.a;
@@ -10842,7 +10848,11 @@ var author$project$Main$update = F2(
 								{page: author$project$Main$Game}),
 							elm$core$Platform$Cmd$none);
 					} else {
-						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{response: ''}),
+							elm$core$Platform$Cmd$none);
 					}
 				} else {
 					var error = result.a;
@@ -10967,6 +10977,7 @@ var author$project$Main$Length = function (a) {
 var author$project$Main$LoadTap = {$: 'LoadTap'};
 var author$project$Main$LoginButton = {$: 'LoginButton'};
 var author$project$Main$LoginTap = {$: 'LoginTap'};
+var author$project$Main$Logout = {$: 'Logout'};
 var author$project$Main$NewTap = {$: 'NewTap'};
 var author$project$Main$Password = function (a) {
 	return {$: 'Password', a: a};
@@ -11459,6 +11470,19 @@ var author$project$Main$view = function (model) {
 				MacCASOutreach$graphicsvg$GraphicSVG$filled,
 				MacCASOutreach$graphicsvg$GraphicSVG$grey,
 				MacCASOutreach$graphicsvg$GraphicSVG$square(7))));
+	var logoutText = A2(
+		MacCASOutreach$graphicsvg$GraphicSVG$notifyTap,
+		author$project$Main$Logout,
+		A2(
+			MacCASOutreach$graphicsvg$GraphicSVG$move,
+			_Utils_Tuple2(0, 45),
+			A2(
+				MacCASOutreach$graphicsvg$GraphicSVG$filled,
+				MacCASOutreach$graphicsvg$GraphicSVG$black,
+				A2(
+					MacCASOutreach$graphicsvg$GraphicSVG$size,
+					3,
+					MacCASOutreach$graphicsvg$GraphicSVG$text('Logout')))));
 	var loginButton = _Utils_ap(
 		_List_fromArray(
 			[
@@ -11489,13 +11513,6 @@ var author$project$Main$view = function (model) {
 							5,
 							MacCASOutreach$graphicsvg$GraphicSVG$text('Login')))))
 			]));
-	var loginScreen = _Utils_ap(
-		notgamebackground,
-		_Utils_ap(
-			usernameBox,
-			_Utils_ap(
-				passwordBox,
-				_Utils_ap(loginButton, toSignup))));
 	var loadText = A2(
 		MacCASOutreach$graphicsvg$GraphicSVG$notifyTap,
 		author$project$Main$LoadTap,
@@ -11519,6 +11536,28 @@ var author$project$Main$view = function (model) {
 				MacCASOutreach$graphicsvg$GraphicSVG$filled,
 				MacCASOutreach$graphicsvg$GraphicSVG$grey,
 				MacCASOutreach$graphicsvg$GraphicSVG$square(7))));
+	var errorDisplay = _List_fromArray(
+		[
+			A2(
+			MacCASOutreach$graphicsvg$GraphicSVG$move,
+			_Utils_Tuple2(-6, -40),
+			A2(
+				MacCASOutreach$graphicsvg$GraphicSVG$filled,
+				author$project$Main$toSVG(author$project$Main$black),
+				A2(
+					MacCASOutreach$graphicsvg$GraphicSVG$size,
+					2,
+					MacCASOutreach$graphicsvg$GraphicSVG$text(model.response))))
+		]);
+	var loginScreen = _Utils_ap(
+		notgamebackground,
+		_Utils_ap(
+			usernameBox,
+			_Utils_ap(
+				passwordBox,
+				_Utils_ap(
+					loginButton,
+					_Utils_ap(toSignup, errorDisplay)))));
 	var _delete = _Utils_ap(
 		_List_fromArray(
 			[
@@ -11607,12 +11646,20 @@ var author$project$Main$view = function (model) {
 								passwordBox,
 								_Utils_ap(confirmpasswordBox, signupButton)))))
 				]),
-			toLogin));
+			_Utils_ap(
+				toLogin,
+				_List_fromArray(
+					[
+						A2(
+						MacCASOutreach$graphicsvg$GraphicSVG$move,
+						_Utils_Tuple2(0, -5),
+						MacCASOutreach$graphicsvg$GraphicSVG$group(errorDisplay))
+					]))));
 	var buttons = _List_fromArray(
 		[
 			MacCASOutreach$graphicsvg$GraphicSVG$group(
 			_List_fromArray(
-				[save, load, _new, saveText, loadText, newText]))
+				[save, load, _new, saveText, loadText, newText, logoutText]))
 		]);
 	var border = _List_fromArray(
 		[
@@ -11973,21 +12020,7 @@ var author$project$Main$view = function (model) {
 			case 'Signup':
 				return signupScreen;
 			case 'Game':
-				return _Utils_ap(
-					gameScreen,
-					_List_fromArray(
-						[
-							A2(
-							MacCASOutreach$graphicsvg$GraphicSVG$move,
-							_Utils_Tuple2(-50, 0),
-							A2(
-								MacCASOutreach$graphicsvg$GraphicSVG$filled,
-								MacCASOutreach$graphicsvg$GraphicSVG$black,
-								A2(
-									MacCASOutreach$graphicsvg$GraphicSVG$size,
-									2,
-									MacCASOutreach$graphicsvg$GraphicSVG$text(model.response))))
-						]));
+				return gameScreen;
 			default:
 				return _Utils_ap(
 					gameScreen,

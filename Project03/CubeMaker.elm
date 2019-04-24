@@ -66,6 +66,7 @@ type Msg = Tick Float GetKeyState
          | PlatformMoveStart (Float,Float)
          | PlatformMoving Int (Float,Float)
          | PlatformMoveEnd
+         | Logout
 
 type alias Model = 
     {
@@ -188,6 +189,7 @@ update msg model =
         SaveTap -> (model, sendJsonPost model.platform)
         LoadTap -> (model, getJsonPost model)
         NewTap -> ({ model | platform = [], page = Game}, Cmd.none)
+        Logout -> ({ model | page = Login}, Cmd.none)
 
         Username input -> ({ model | username = input }, Cmd.none)
         Password input -> ({ model | password = input }, Cmd.none)
@@ -233,8 +235,8 @@ update msg model =
 
         PlatformMoveEnd -> ({model | pmovable = False}, Cmd.none)
 
-        SignupTap -> ({model | page = Signup, username = "", password = "", confirmpassword = ""}, Cmd.none)
-        LoginTap ->  ({model | page = Login, username = "", password = "", confirmpassword = ""}, Cmd.none)
+        SignupTap -> ({model | page = Signup, username = "", password = "", confirmpassword = "", response = ""}, Cmd.none)
+        LoginTap ->  ({model | page = Login, username = "", password = "", confirmpassword = "", response = ""}, Cmd.none)
 
         MakeRequest req -> (model, Cmd.none)
         UrlChange url -> (model, Cmd.none)
@@ -242,7 +244,7 @@ update msg model =
         GotAuth result ->
             case result of
                 Ok "Login Success" -> ({model | page = Game} , Cmd.none)
-                Ok _ -> (model, Cmd.none)
+                Ok _ -> ({model | response = ""}, Cmd.none)
                 Err error -> (handleError model error , Cmd.none)
 
         GotSave result ->
@@ -271,7 +273,7 @@ handleError model error =
             { model | response = "bad status " ++ String.fromInt i }
 
         Http.BadBody body ->
-            { model | response = "bad body " ++ body }
+            { model | response = "bad body " ++ body}
 
 
 view : Model -> { title : String, body : Collage Msg }
@@ -282,11 +284,11 @@ view model =
         whichScreen = case model.page of
                         Login -> loginScreen
                         Signup -> signupScreen
-                        Game -> gameScreen ++ [GraphicSVG.text model.response |> GraphicSVG.size 2 |> GraphicSVG.filled GraphicSVG.black |> move (-50,0)]
+                        Game -> gameScreen
                         YouWin -> gameScreen ++ [GraphicSVG.text "You Win!" |> GraphicSVG.size 10 |> GraphicSVG.filled GraphicSVG.black |> move (-20,0)]
                     
-        loginScreen = notgamebackground ++ usernameBox ++ passwordBox ++ loginButton ++ toSignup
-        signupScreen = notgamebackground ++ [group (usernameBox ++ passwordBox ++ confirmpasswordBox ++ signupButton) |> move (0,10)] ++ toLogin
+        loginScreen = notgamebackground ++ usernameBox ++ passwordBox ++ loginButton ++ toSignup ++ errorDisplay
+        signupScreen = notgamebackground ++ [group (usernameBox ++ passwordBox ++ confirmpasswordBox ++ signupButton) |> move (0,10)] ++ toLogin ++ [group(errorDisplay) |> move (0,-5)]
         usernameBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "2px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Username", value model.username, onInput Username ] []]) |> move (-15,15)]
         passwordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "2px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Password", Html.Attributes.type_ "password", value model.password, onInput Password ] []]) |> move (-15,0)]
         confirmpasswordBox = [html 50 50 (div [] [input [ Html.Attributes.style "font-size" "2px", Html.Attributes.style "height" "3px", Html.Attributes.style "width" "25px", placeholder "Confirm Password", Html.Attributes.type_ "password", value model.confirmpassword, onInput PasswordConfirm ] []]) |> move (-15,-15)]
@@ -295,6 +297,8 @@ view model =
         toSignup = [GraphicSVG.text "Not a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (35,-45) |> notifyTap SignupTap]
         toLogin = [GraphicSVG.text "Already a user?" |> GraphicSVG.size 2 |> filled (toSVG black) |> move (30,-45) |> notifyTap LoginTap]
         notgamebackground = [square 100|> filled (toSVG sky)]
+
+        errorDisplay = [GraphicSVG.text model.response |> GraphicSVG.size 2 |> filled (toSVG black) |> move (-6,-40)]
         
         gameScreen = background ++ playergroup ++ playerModelGroup ++ border ++ buttons ++ addplatformAll ++ delete ++ platforms
         background = [square 80 |> filled (toSVG alice)]
@@ -328,7 +332,8 @@ view model =
         addplatformAll = [group (addplatformLength ++ addplatformWidth ++ addplatformColour ++ addplatformButton) |> move (56,0)] ++ winColour
         delete = [square 7 |> filled GraphicSVG.grey |> move (-45,-25)] ++ [rectangle 8 2 |> filled GraphicSVG.grey |> move (-45,-20)] ++ [rectangle 3 0.5 |> filled GraphicSVG.grey |> move (-45,-19)] ++ [rectangle 10 15 |> outlined (solid 0.2) GraphicSVG.black |> move (-45,-25)]
 
-        buttons = [group[save,load,new,saveText,loadText,newText]]   
+        buttons = [group[save,load,new,saveText,loadText,newText,logoutText]]
+        logoutText = GraphicSVG.text "Logout" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (0, 45) |> notifyTap Logout
         saveText = GraphicSVG.text "Save" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, 7) |> notifyTap SaveTap
         loadText = GraphicSVG.text "Load" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, -1) |> notifyTap LoadTap
         newText = GraphicSVG.text "New" |>  GraphicSVG.size 3 |> filled GraphicSVG.black |> move (-48, -9) |> notifyTap NewTap
@@ -806,6 +811,14 @@ loginPost model =
             url = "https://mac1xa3.ca/e/zhua15/Project03/login/",
             body = Http.jsonBody <| encodeCredentials model,
             expect = Http.expectString GotAuth 
+        }
+
+logoutPost : Cmd Msg
+logoutPost =
+    Http.get
+        {
+             url = "https://mac1xa3.ca/e/zhua15/Project03/logout/",
+             expect = Http.expectString GotAuth
         }
 
 signupPost : Model -> Cmd Msg
