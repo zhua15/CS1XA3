@@ -279,7 +279,7 @@ handleError model error =
 view : Model -> { title : String, body : Collage Msg }
 view model = 
     let
-        title = "CubeStomp"
+        title = "CubeMaker"
         body = collage 100 100 whichScreen
         whichScreen = case model.page of
                         Login -> loginScreen
